@@ -34,7 +34,12 @@ import httpx
 from pydantic import BaseModel, Field
 
 from backend.scenario_engine import match_story_scenario, synthesize_story_scenario_response
-from backend.statutory_engine import match_statutory_section, synthesize_statutory_section_response
+from backend.statutory_engine import (
+    match_statutory_section,
+    synthesize_statutory_section_response,
+    match_harm_or_violent_crime_query,
+    synthesize_violent_harm_response,
+)
 
 # Load environment configuration (.env and .env.local)
 load_dotenv()
@@ -350,18 +355,27 @@ ollama_client = OllamaClient()
 # Live Online Web Search Engine (DuckDuckGo + Wikipedia + Google Gemini Grounding)
 # ==============================================================================
 
-# Content Safety and Filtering Lists to Prevent Irrelevant or Vulgar Web Results
+# Content Safety and Filtering Lists to Prevent Irrelevant, SEO, or AI-Marketing Web Results
 BANNED_CONTENT_KEYWORDS = {
     "porn", "xxx", "xhamster", "porno", "erotic", "sex", "nude", "adult website",
     "how to get away with murder", "tv series", "television series",
     "soap opera", "film", "movie", "soundtrack", "season 1", "season 2", "episode",
     "box office", "actor", "actress", "celebrity", "imdb", "video game", "cinematography",
-    "web series", "trailer", "song", "lyrics", "dating", "escort"
+    "web series", "trailer", "song", "lyrics", "dating", "escort",
+    # AI assistant / platform marketing keywords to block SEO junk from grounding
+    "claude", "anthropic", "chatgpt", "openai", "copilot", "sign in", "sign up", "login",
+    "creative tasks", "ai assistant", "drafting websites", "chat history", "api pricing",
+    "user agreement", "terms of service", "privacy policy", "reset password", "two factor",
+}
+
+BANNED_DOMAINS = {
+    "claude.ai", "anthropic.com", "openai.com", "chatgpt.com", "bing.com",
+    "facebook.com", "instagram.com", "tiktok.com", "twitter.com", "x.com",
 }
 
 LEGAL_INDICATOR_KEYWORDS = {
     "law", "section", "act", "court", "rights", "bail", "statute", "supreme court",
-    "high court", "jurisdiction", "code", "penalty", "offence", "offense", "contract",
+    "high court", "jurisdiction", "penal code", "penalty", "offence", "offense", "contract",
     "property", "justice", "advocate", "legal", "order", "rule", "article", "ipc",
     "bns", "crpc", "bnss", "bsa", "evidence", "fir", "police", "prosecution",
     "accused", "magistrate", "tribunal", "arbitration", "tort", "crime", "criminal",
@@ -372,11 +386,25 @@ LEGAL_INDICATOR_KEYWORDS = {
 
 
 def is_safe_and_legally_relevant(title: str, snippet: str, url: str) -> bool:
-    """Verifies that an external web search hit contains no banned content and has substantive legal value."""
+    """Verifies that an external web search hit contains no banned content, no AI marketing, and has substantive legal value."""
     combined = f"{title} {snippet} {url}".lower()
+    title_lower = title.lower()
+    url_lower = url.lower()
+
+    # Reject sign-in / login pages
+    if "sign in" in title_lower or "sign up" in title_lower or "log in" in title_lower or "login" in title_lower:
+        return False
+
+    # Reject banned domains
+    for domain in BANNED_DOMAINS:
+        if domain in url_lower:
+            return False
+
+    # Reject banned keywords
     for banned in BANNED_CONTENT_KEYWORDS:
         if banned in combined:
             return False
+
     # Check for substantive legal indicators
     has_legal_terms = any(
         re.search(r"\b" + re.escape(word) + r"\b", combined)
@@ -1278,6 +1306,23 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
     history = request.history
 
     logger.info(f"[ROUTER] Incoming Query: '{query}' | User Role: {role}")
+
+    # --------------------------------------------------------------------------
+    # Step 0-Safety: Violent Crime, Harmful Act & Offence Interceptor
+    # --------------------------------------------------------------------------
+    harm_match = match_harm_or_violent_crime_query(query)
+    if harm_match:
+        logger.info(
+            f"[ROUTER] Identified violent harm / criminal offence query: '{harm_match['action']}' "
+            f"targeting '{harm_match['target']}'. Returning authoritative legal prohibition and penal framework."
+        )
+        harm_text, harm_citations = synthesize_violent_harm_response(harm_match, query, role)
+        return ChatResponse(
+            text=harm_text,
+            source="local_rag",
+            confidence_score=1.0,
+            citations=harm_citations,
+        )
 
     # --------------------------------------------------------------------------
     # Step 0A: System Architecture, Data Origin, & Privacy Inquiries

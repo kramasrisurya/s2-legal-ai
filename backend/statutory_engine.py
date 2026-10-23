@@ -314,7 +314,189 @@ def match_statutory_section(query: str) -> Optional[Tuple[str, str]]:
             if t in STATUTORY_REGISTRY:
                 return t, "ipc"
 
+    # 4. Direct conceptual queries: "what is murder", "definition of murder", "cheating", "theft", etc.
+    concept_map = {
+        "punishment for murder": ("302", "ipc"),
+        "murder": ("300", "ipc"),
+        "cheating": ("420", "ipc"),
+        "theft": ("378", "ipc"),
+        "dowry death": ("304b", "ipc"),
+        "cruelty by husband": ("498a", "ipc"),
+        "domestic cruelty": ("498a", "ipc"),
+        "defamation": ("499", "ipc"),
+        "cheque bounce": ("138", "ipc"),
+        "dishonour of cheque": ("138", "ipc"),
+    }
+    # Check if query asks what/definition of these concepts
+    for concept, (sec, stype) in concept_map.items():
+        if re.search(r"\b(?:what\s+is|define|definition\s+of|explain|tell\s+me\s+about)?\s*" + re.escape(concept) + r"\b", clean):
+            if not re.search(r"\b(can\s+i|how\s+to|should\s+i|want\s+to|kill|shoot|stab)\b", clean):
+                return sec, stype
+
     return None
+
+
+# ==============================================================================
+# Violent Crime, Harmful Act & Offence Safety Guardrail Interceptor
+# ==============================================================================
+
+def match_harm_or_violent_crime_query(query: str) -> Optional[Dict[str, Any]]:
+    """
+    Detects queries contemplating, asking about the legality of, or inquiring about
+    the commission of violent acts, murder, culpable homicide, shooting, stabbing,
+    or physical assault under Indian Law.
+    
+    Examples:
+    - "can i kill me brother?"
+    - "can i kill my brother?"
+    - "is it legal to kill someone"
+    - "how can i kill someone"
+    - "i want to kill my brother"
+    - "can i murder someone"
+    - "can i shoot someone"
+    - "is killing allowed"
+    """
+    clean = re.sub(r"[^\w\s]", " ", query).strip().lower()
+    clean = re.sub(r"\s+", " ", clean)
+
+    # 1. Direct permission, contemplation, or solicitation of violent harm / killing
+    intent_pattern = (
+        r"\b(can\s+i|can\s+we|may\s+i|is\s+it\s+legal(?:\s+to)?|is\s+it\s+allowed(?:\s+to)?|"
+        r"how\s+to|how\s+can\s+i|how\s+do\s+i|should\s+i|i\s+want\s+to|i\s+need\s+to|"
+        r"allowed\s+to|permission\s+to|ways\s+to|can\s+one|could\s+i|where\s+can\s+i)\s+"
+        r"(?:commit\s+)?(kill|murder|shoot|poison|stab|slay|strangle|assault|harm|beat|eliminate|lynch|attack)\b"
+    )
+    m1 = re.search(intent_pattern, clean)
+    if m1:
+        action = m1.group(2)
+        # Extract target relationship if present
+        target_m = re.search(
+            r"\b(kill|murder|shoot|poison|stab|slay|strangle|assault|harm|beat|eliminate|lynch|attack)\s+"
+            r"(?:my|me|his|her|their|a|an|the|someone|somebody|anyone|anybody)?\s*"
+            r"(brother|bro|sister|sis|father|dad|mother|mom|parents|son|daughter|wife|husband|spouse|neighbor|neighbour|friend|enemy|man|woman|child|person|human|boss|relative|uncle|aunt|cousin|someone|somebody|anyone|anybody)\b",
+            clean,
+        )
+        target = target_m.group(2) if target_m and target_m.group(2) else "another person"
+        return {
+            "type": "violent_harm",
+            "action": action,
+            "target": target,
+            "query": query,
+        }
+
+    # 2. Direct violent imperative or queries: "kill my brother", "kill me brother", "kill my bro", "murder someone"
+    direct_pattern = (
+        r"\b(kill|murder|shoot|poison|stab|strangle|eliminate|slay)\s+"
+        r"(?:my|me|his|her|their|someone|somebody|a\s+person|anyone|anybody|"
+        r"brother|bro|sister|sis|father|dad|mother|mom|parents|son|daughter|wife|husband|spouse|neighbor|neighbour|friend|enemy|uncle|aunt|cousin)\b"
+    )
+    m2 = re.search(direct_pattern, clean)
+    if m2:
+        action = m2.group(1)
+        # Check target
+        target_m = re.search(
+            r"\b(kill|murder|shoot|poison|stab|strangle|eliminate|slay)\s+"
+            r"(?:my|me|his|her|their|someone|somebody|a\s+person|anyone|anybody)?\s*"
+            r"(brother|bro|sister|sis|father|dad|mother|mom|parents|son|daughter|wife|husband|spouse|neighbor|neighbour|friend|enemy|uncle|aunt|cousin)?\b",
+            clean,
+        )
+        target = target_m.group(2) if target_m and target_m.group(2) else "another person"
+        return {
+            "type": "violent_harm",
+            "action": action,
+            "target": target,
+            "query": query,
+        }
+
+    # 3. Inquiries regarding whether killing / murder is legal: "is killing legal", "is murder allowed", "right to kill"
+    legal_killing_pattern = r"\b(is\s+killing\s+legal|is\s+murder\s+legal|is\s+killing\s+allowed|legality\s+of\s+killing|right\s+to\s+kill)\b"
+    if re.search(legal_killing_pattern, clean):
+        return {
+            "type": "violent_harm",
+            "action": "kill",
+            "target": "another person",
+            "query": query,
+        }
+
+    return None
+
+
+def synthesize_violent_harm_response(
+    match_info: Dict[str, Any], query: str, role: str
+) -> Tuple[str, List[str]]:
+    """
+    Synthesizes an immediate, unequivocal, authoritative legal declaration establishing
+    that killing or causing physical harm is strictly prohibited under Indian Law,
+    details the governing penal statutes (Section 300/302 IPC & Section 101/103 BNS),
+    punishment (Death Penalty / Life Imprisonment), private defence boundaries,
+    civil dispute remedies, and crisis emergency helplines.
+    """
+    target = match_info.get("target", "another person")
+    if target in {"brother", "bro"}:
+        target_str = "your brother"
+    elif target in {"sister", "sis"}:
+        target_str = "your sister"
+    elif target in {"father", "dad"}:
+        target_str = "your father"
+    elif target in {"mother", "mom"}:
+        target_str = "your mother"
+    elif target in {"wife", "husband", "son", "daughter", "spouse", "cousin", "uncle", "aunt"}:
+        target_str = f"your {target}"
+    elif target in {"neighbor", "neighbour", "friend", "enemy", "boss", "relative"}:
+        target_str = f"your {target}"
+    elif target in {"another person", "the person in question", "someone", "somebody", "anyone", "anybody", "person", "human"}:
+        target_str = "any human being"
+    else:
+        target_str = f"{target}"
+
+    text = (
+        f"### 🚨 ABSOLUTELY NOT: Killing Any Person is Strictly Illegal Under Indian Law\n\n"
+        f"> ⚠️ **IMMEDIATE LEGAL DECLARATION**:\n"
+        f"> **NO, you CANNOT kill {target_str} or any human being under any circumstances.**\n"
+        f"> Under Indian Criminal Law, deliberately taking another person's life is strictly prohibited, "
+        f"constitutes the grave capital offence of **MURDER**, and is punishable by **DEATH or IMPRISONMENT FOR LIFE**.\n\n"
+        f"---\n\n"
+        f"### ⚖️ Governing Penal Framework (IPC 1860 vs BNS 2023 Concordance)\n\n"
+        f"| Legal Metric | Indian Penal Code (IPC 1860) | Bharatiya Nyaya Sanhita (BNS 2023) |\n"
+        f"|---|---|---|\n"
+        f"| **Substantive Offence** | **Section 300 IPC** (Definition of Murder) | **Section 101 BNS** |\n"
+        f"| **Punishment Provision** | **Section 302 IPC** (Punishment for Murder) | **Section 103(1) BNS** |\n"
+        f"| **Prescribed Penalty** | **Death Penalty or Life Imprisonment, and Fine** | **Death Penalty or Life Imprisonment, and Fine** |\n"
+        f"| **Attempt to Murder** | **Section 307 IPC** (Up to 10 Years or Life Imprisonment) | **Section 109 BNS** |\n"
+        f"| **Criminal Conspiracy** | **Section 120B IPC** (Treated as Co-Principal Offender) | **Section 61(2) BNS** |\n"
+        f"| **Cognizability** | **Cognizable** (Police must arrest immediately without warrant) | **Cognizable** |\n"
+        f"| **Bail Classification** | **Non-Bailable** (Bail is exception, strictly at Sessions discretion) | **Non-Bailable** |\n"
+        f"| **Jurisdictional Court** | **Court of Session** (Exclusive Jurisdiction) | **Court of Session** |\n\n"
+        f"---\n\n"
+        f"### 🛡️ Why Self-Defence or Family Disputes Do NOT Justify Killing\n"
+        f"1. **Strict Limits of Private Defence**: Under **Sections 96 to 106 IPC** (**Sections 34 to 44 BNS 2023**), "
+        f"the right of private defence is strictly preventive and defensive. It extends to causing death *only* "
+        f"when there is a reasonable, imminent apprehension of death or grievous hurt (*Darshan Singh v. State of Punjab, AIR 2010 SC 1212*).\n"
+        f"2. **Zero Tolerance for Disputes, Anger, or Revenge**: Private defence **NEVER** justifies killing due to family quarrels, "
+        f"property disputes, inheritance disagreements, verbal abuse, or past provocation. Any premeditated retaliation is classified as Murder under Section 300 IPC / Section 101 BNS.\n\n"
+        f"---\n\n"
+        f"### 🏛️ Lawful Remedies to Resolve Family & Sibling Disputes\n"
+        f"If you are facing serious conflicts or disputes with family members or siblings, Indian law provides strict legal mechanisms to protect your rights:\n"
+        f"• **Civil Partition Suit**: If the dispute involves ancestral or shared property, file a **Suit for Partition and Separate Possession** before the competent Civil Court under the Code of Civil Procedure (CPC, 1908).\n"
+        f"• **Injunction to Protect Possession**: Apply for an **Ad-Interim Temporary Injunction** under Order 39 Rules 1 & 2 of CPC to restrain any family member from dispossessing you, creating third-party rights, or causing harm.\n"
+        f"• **Criminal Complaint for Threats (Section 506 IPC / Sec 351 BNS)**: If you or your family are receiving threats, lodge a written complaint / FIR at the local police station for Criminal Intimidation.\n"
+        f"• **Preventive Magisterial Action (Sec 107/116 CrPC / Sec 126/135 BNSS)**: Request the Executive Magistrate to initiate proceedings to bind over threatening parties to keep the peace.\n\n"
+        f"---\n\n"
+        f"### 🆘 Immediate Emergency Helplines & Crisis Support\n"
+        f"If you are experiencing extreme distress, domestic conflict, or unsafe thoughts, immediate help is available:\n"
+        f"• 🚨 **National Police Emergency Helpline**: **112** (or **100**)\n"
+        f"• 🧠 **Tele-MANAS (Govt. of India 24x7 Mental Health Helpline)**: **14416** or **1800-891-4416** (Toll-Free)\n"
+        f"• 🤝 **KIRAN Mental Health Support (Ministry of Social Justice)**: **1800-599-0019** (24x7 Free & Confidential)"
+    )
+
+    citations = [
+        "[Local ChromaDB] backend/data/indian_penal_code_1860.pdf (Section 300: Murder, Section 302: Capital Punishment)",
+        "[Statute] Bharatiya Nyaya Sanhita (BNS), 2023 - Section 101 (Definition) & Section 103(1) (Punishment for Murder)",
+        "[Landmark Precedent] Darshan Singh v. State of Punjab, AIR 2010 SC 1212 (Supreme Court on Limits of Private Defence)",
+        "[Procedural Code] Code of Criminal Procedure, 1973 - First Schedule (Cognizable, Non-Bailable, Triable by Court of Session)",
+    ]
+
+    return text, citations
 
 
 def synthesize_statutory_section_response(
