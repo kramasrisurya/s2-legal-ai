@@ -22,7 +22,7 @@ export class LegalAIService {
     attachments: FileAttachment[] = []
   ): Promise<AnalyzeQueryResponse> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 45000);
 
     try {
       const response = await fetch(this.apiUrl, {
@@ -64,7 +64,7 @@ export class LegalAIService {
 
       const isTimeout = error.name === 'AbortError';
       const errorMessage = isTimeout
-        ? "⚠️ **Request Timeout**: The legal inference engine took longer than 15 seconds to respond. Please verify your connection or retry your query."
+        ? "⚠️ **Request Timeout**: The legal inference engine took longer than 45 seconds to respond. Please verify your connection or retry your query."
         : `⚠️ **Connection Error**: Unable to reach the Python FastAPI backend at \`${this.apiUrl}\`. Please ensure the FastAPI server is running via \`uvicorn backend.main:app --port 8000\`.`;
 
       return {

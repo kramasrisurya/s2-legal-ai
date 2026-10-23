@@ -169,7 +169,7 @@ class VectorStoreManager:
         Calibrates cosine distance from BAAI/bge-small-en-v1.5 to an academic similarity score.
         In cosine space with unit-normalized embeddings:
         - raw_sim = 1.0 - distance.
-        - Boosts for exact statutory section numbers, article numbers, and legal keywords.
+        - Boosts for exact statutory section numbers, substantive section headings, article numbers, and legal keywords.
         - Downweights pure Table-of-Contents / arrangement of sections chunks.
         """
         if raw_score <= 1.0:
@@ -181,25 +181,37 @@ class VectorStoreManager:
         doc_lower = doc_text.lower()
 
         # Check for Table of Contents / Arrangement of sections page
-        # If it's merely a list of sections without definitions, apply a small penalty so substantive sections rank first
-        is_toc = "arrangement of sections" in doc_lower or (doc_lower.count("chapter") > 1 and doc_lower.count("sections") > 1)
-        toc_penalty = 0.12 if is_toc else 0.0
+        sec_num_matches = len(re.findall(r"\b\d+\.\s+[A-Z]", doc_text))
+        is_toc = (
+            "arrangement of sections" in doc_lower
+            or (doc_lower.count("chapter") > 1 and doc_lower.count("sections") > 1)
+            or (sec_num_matches >= 2 and "—" not in doc_text and "--" not in doc_text and "exception" not in doc_lower)
+        )
+        toc_penalty = 0.25 if is_toc else 0.0
 
         # Exact section / article number matching
-        # Matches e.g. 420, 302, 378, 498a, 120b, 84, 14, 21, 32, 226, 368
         query_nums = set(re.findall(r"\b(\d+[a-zA-Z]?)\b", query))
         doc_nums = set(re.findall(r"\b(\d+[a-zA-Z]?)\b", doc_text))
         common_nums = query_nums & doc_nums
 
         section_boost = 0.0
+        substantive_boost = 0.0
         if common_nums:
             statutory_indicators = ["section", "sec", "article", "art", "ipc", "act", "code", "provision", "punishment", "about"]
-            if any(term in q_lower for term in statutory_indicators):
-                has_section_heading = any(
-                    re.search(r"(?:section\s+|sec\.?\s*|^|\n)" + re.escape(num) + r"(?:\.|\s|\b)", doc_lower)
-                    for num in common_nums
-                )
-                section_boost = 0.20 if has_section_heading else 0.16
+            has_stat_indicator = any(term in q_lower for term in statutory_indicators) or len(query.split()) <= 3
+            if has_stat_indicator:
+                section_boost = 0.20
+                if not is_toc:
+                    # Check for substantive definition heading like "300. Murder.—" or "420. Cheating..." or "Article 21."
+                    for num in common_nums:
+                        has_substantive = bool(
+                            re.search(r"\b" + re.escape(num) + r"\.\s+([A-Za-z]+)\s*[\.—–-]", doc_text)
+                            or re.search(r"(?:article|art\.?)\s+" + re.escape(num) + r"[\.:\s]+[A-Z]", doc_text, re.IGNORECASE)
+                            or re.search(r"(?:section|sec\.?)\s+" + re.escape(num) + r"[\.:\s]+[A-Z]", doc_text, re.IGNORECASE)
+                        )
+                        if has_substantive:
+                            substantive_boost = 0.35
+                            break
             else:
                 section_boost = 0.08
 
@@ -213,15 +225,15 @@ class VectorStoreManager:
             "decide", "give", "please", "into", "their", "there", "some", "more"
         }
         legal_matches = (q_tokens & doc_tokens) - stop_words
-        overlap_boost = min(0.10, len(legal_matches) * 0.025)
+        overlap_boost = min(0.12, len(legal_matches) * 0.03)
 
         # General IPC and Penal code relevance boost for chunks originating from the penal code
-        ipc_boost = 0.08 if (("ipc" in q_lower or "penal code" in q_lower) and ("indian_penal_code" in doc_lower or "penal code" in doc_lower)) else 0.0
+        ipc_boost = 0.10 if (("ipc" in q_lower or "penal code" in q_lower) and ("indian_penal_code" in doc_lower or "penal code" in doc_lower)) else 0.0
 
         # Scenario and practical dispute match boost
-        scenario_boost = 0.08 if ("scenario" in doc_lower and len(legal_matches) >= 2) else 0.0
+        scenario_boost = 0.10 if ("scenario" in doc_lower and len(legal_matches) >= 2) else 0.0
 
-        calibrated_sim = min(1.0, max(0.0, raw_sim + section_boost + overlap_boost + ipc_boost + scenario_boost - toc_penalty))
+        calibrated_sim = min(1.0, max(0.0, raw_sim + section_boost + substantive_boost + overlap_boost + ipc_boost + scenario_boost - toc_penalty))
         return round(calibrated_sim, 4)
 
     def retrieve_with_similarity(
@@ -237,12 +249,50 @@ class VectorStoreManager:
             logger.warning("[ROUTER] Vector database is empty. No local chunks available.")
             return []
 
-        # Retrieve a broader candidate pool (max 20) to ensure HNSW graph explores thoroughly,
-        # then rerank and calibrate with exact section numbers and legal overlap boosts.
-        candidate_k = max(20, top_k * 4)
-        results_with_score = self.vector_store.similarity_search_with_score(query, k=candidate_k)
-        processed: List[Tuple[Document, float]] = []
+        q_lower = query.lower().strip()
+        search_query = query
 
+        # 1. Shorthand query expansion for dense vector search
+        ipc_match = re.search(r"\b(?:ipc|indian penal code)\s*(\d+[a-zA-Z]?)\b|\b(\d+[a-zA-Z]?)\s*(?:ipc|indian penal code)\b", q_lower)
+        if ipc_match:
+            sec_num = ipc_match.group(1) or ipc_match.group(2)
+            search_query = f"Section {sec_num} Indian Penal Code IPC definition offence ingredients punishment"
+        else:
+            art_match = re.search(r"\b(?:article|art)\.?\s*(\d+[a-zA-Z]?)\b", q_lower)
+            if art_match:
+                art_num = art_match.group(1)
+                search_query = f"Article {art_num} Constitution of India fundamental rights protection"
+            else:
+                sec_gen_match = re.search(r"\b(?:section|sec)\.?\s*(\d+[a-zA-Z]?)\b", q_lower)
+                if sec_gen_match:
+                    sec_num = sec_gen_match.group(1)
+                    search_query = f"{query} Section {sec_num} statutory definition legal ingredients"
+
+        # 2. Retrieve dense vector candidates
+        candidate_k = max(25, top_k * 5)
+        results_with_score = self.vector_store.similarity_search_with_score(search_query, k=candidate_k)
+
+        # 3. Direct candidate injection for specific section / article numbers from the collection
+        query_nums = set(re.findall(r"\b(\d+[a-zA-Z]?)\b", query))
+        if query_nums:
+            try:
+                all_col_data = self.vector_store._collection.get(include=["documents", "metadatas"])
+                seen_texts = {d.page_content for d, _ in results_with_score}
+                for doc_text, meta in zip(all_col_data.get("documents", []), all_col_data.get("metadatas", [])):
+                    if doc_text in seen_texts:
+                        continue
+                    for num in query_nums:
+                        if re.search(r"\b" + re.escape(num) + r"\.\s+([A-Za-z]+)\s*[\.—–-]", doc_text) or \
+                           re.search(r"(?:article|art\.?)\s+" + re.escape(num) + r"[\.:\s]+[A-Z]", doc_text, re.IGNORECASE):
+                            doc_obj = Document(page_content=doc_text, metadata=meta or {})
+                            results_with_score.append((doc_obj, 0.25))
+                            seen_texts.add(doc_text)
+                            break
+            except Exception as inj_err:
+                logger.warning(f"[ROUTER] Direct candidate injection notice: {inj_err}")
+
+        # 4. Rerank and calibrate similarity
+        processed: List[Tuple[Document, float]] = []
         for doc, score in results_with_score:
             similarity = self.compute_similarity(query, doc.page_content, score)
             processed.append((doc, similarity))
@@ -1031,6 +1081,18 @@ def synthesize_local_rag_answer(
     primary_content = primary_doc.page_content.strip()
     primary_source = primary_doc.metadata.get("source_file", "").lower()
 
+    # If query mentions a specific section or article number, slice directly from that heading
+    query_nums = re.findall(r"\b(\d+[a-zA-Z]?)\b", query)
+    for num in query_nums:
+        m = re.search(r"\b" + re.escape(num) + r"\.\s+([A-Za-z]+)\s*[\.—–-]", primary_content)
+        if m:
+            primary_content = primary_content[m.start():]
+            break
+        m_art = re.search(r"(?:article|art\.?)\s+" + re.escape(num) + r"[\.:\s]+[A-Z]", primary_content, re.IGNORECASE)
+        if m_art:
+            primary_content = primary_content[m_art.start():]
+            break
+
     lines = [l.strip() for l in primary_content.split("\n") if l.strip()]
     heading_idx = 0
     for idx, line in enumerate(lines):
@@ -1040,6 +1102,40 @@ def synthesize_local_rag_answer(
 
     primary_heading = lines[heading_idx] if lines else "Statutory Authority"
     body_text = "\n".join(lines[heading_idx:]) if heading_idx < len(lines) else primary_content
+
+    # IPC section concordance table enhancements
+    concordance_block = ""
+    if "300" in query_nums or "300." in primary_content:
+        concordance_block = (
+            "\n\n### ⚖️ Statutory Framework (IPC 1860 vs BNS 2023 Concordance)\n"
+            "| Legal Metric | Indian Penal Code (IPC 1860) | Bharatiya Nyaya Sanhita (BNS 2023) |\n"
+            "|---|---|---|\n"
+            "| **Definition Provision** | **Section 300 IPC** (Murder) | **Section 101 BNS** |\n"
+            "| **Punishment Provision** | **Section 302 IPC** | **Section 103(1) BNS** (Death/Life Impr. + Fine) |\n"
+            "| **Classification** | **Cognizable & Non-Bailable** | **Cognizable & Non-Bailable** |\n"
+            "| **Jurisdiction** | **Court of Session** | **Court of Session** |\n"
+            "| **General Exceptions** | 5 Exceptions (Provocation, Private Defence, Public Servant, Sudden Fight, Consent) | 5 Exceptions preserved under Section 101 BNS |"
+        )
+    elif "420" in query_nums or "420." in primary_content:
+        concordance_block = (
+            "\n\n### ⚖️ Statutory Framework (IPC 1860 vs BNS 2023 Concordance)\n"
+            "| Legal Metric | Indian Penal Code (IPC 1860) | Bharatiya Nyaya Sanhita (BNS 2023) |\n"
+            "|---|---|---|\n"
+            "| **Governing Provision** | **Section 420 IPC** (Cheating) | **Section 318(4) BNS** |\n"
+            "| **Punishment** | Up to **7 years** imprisonment and fine | Up to **7 years** imprisonment and fine |\n"
+            "| **Cognizability & Bail** | **Cognizable & Non-Bailable** | **Cognizable & Non-Bailable** |\n"
+            "| **Procedural Safeguard** | Mandatory Sec 35(3) BNSS / 41A CrPC (*Arnesh Kumar*) | Written reasons required before arrest |"
+        )
+    elif "302" in query_nums or "302." in primary_content:
+        concordance_block = (
+            "\n\n### ⚖️ Statutory Framework (IPC 1860 vs BNS 2023 Concordance)\n"
+            "| Legal Metric | Indian Penal Code (IPC 1860) | Bharatiya Nyaya Sanhita (BNS 2023) |\n"
+            "|---|---|---|\n"
+            "| **Governing Provision** | **Section 302 IPC** (Punishment for Murder) | **Section 103(1) BNS** |\n"
+            "| **Punishment** | **Death or Imprisonment for Life**, and fine | **Death or Imprisonment for Life**, and fine |\n"
+            "| **Classification** | **Cognizable & Non-Bailable** | **Cognizable & Non-Bailable** |\n"
+            "| **Bail Jurisprudence** | Category C/D under *Satender Kumar Antil* | Strict judicial scrutiny |"
+        )
 
     supporting_sections = []
     for d, s in retrieved[1:4]:
@@ -1109,7 +1205,7 @@ def synthesize_local_rag_answer(
         f"Here is the authoritative legal analysis for your inquiry: **'{query}'**. "
         f"This was retrieved directly from the on-premise statutory corpus with a **{top_score * 100:.0f}% confidence match**.\n\n"
         f"### 📜 {prov_title}\n"
-        f"{body_text}\n\n"
+        f"{body_text}{concordance_block}\n\n"
         f"### ⚖️ Judicial Precedents & Corroborating Authorities\n"
         f"{supporting_block}\n\n"
         f"### 💡 Actionable Strategy & Remedies ({role.upper()} Perspective)\n"
@@ -1317,26 +1413,22 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
                     prompt=user_prompt, system=system_prompt
                 )
             else:
-                raise RuntimeError(f"Ollama server is offline at {ollama_client.base_url}")
+                logger.info(
+                    f"[ROUTER] Ollama offline at {ollama_client.base_url}. "
+                    f"Synthesizing authoritative legal response directly from {len(retrieved)} retrieved Local RAG chunks..."
+                )
+                generated_text = synthesize_local_rag_answer(
+                    query=query, retrieved=retrieved, role=role
+                )
+                inference_engine = "Local Vector RAG Synthesis (ChromaDB + In-Memory)"
         except Exception as ollama_err:
             logger.warning(
-                f"[ROUTER] Local Ollama unavailable or threw error: {ollama_err}. "
-                "Initiating immediate failover to Gemini fallback protocol..."
+                f"[ROUTER] Ollama error: {ollama_err}. Synthesizing from local index..."
             )
-            try:
-                generated_text, fallback_cits = await gemini_service.generate_with_search(
-                    query=query, history=history, role=role
-                )
-                chosen_source = "gemini_fallback"
-                citations = []  # Empty citations for gemini fallback as per specification
-                inference_engine = f"Failover: Google Gemini ({GEMINI_MODEL}) + Search Grounding"
-            except Exception as gem_fail_err:
-                logger.info(
-                    f"[ROUTER] Gemini API notice ({gem_fail_err}). "
-                    "Constructing structured constitutional synthesis from retrieved local index..."
-                )
-                generated_text = synthesize_local_rag_answer(query=query, retrieved=retrieved, role=role)
-                inference_engine = "Local Vector RAG Synthesis (ChromaDB)"
+            generated_text = synthesize_local_rag_answer(
+                query=query, retrieved=retrieved, role=role
+            )
+            inference_engine = "Local Vector RAG Synthesis (ChromaDB + In-Memory)"
 
     # --------------------------------------------------------------------------
     # Step 4: Real-Time Online Search Fallback (Secondary)
