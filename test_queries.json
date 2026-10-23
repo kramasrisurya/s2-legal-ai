@@ -1,0 +1,66 @@
+[
+  {
+    "id": "TC-01",
+    "name": "Conversational Intent",
+    "query": "hi, who are you",
+    "expected_source": "local_rag",
+    "min_expected_confidence": 0.90,
+    "description": "Greeting query; should return S2 Legal AI Pro system overview."
+  },
+  {
+    "id": "TC-02",
+    "name": "Landmark Precedent (Basic Structure)",
+    "query": "What did Kesavananda Bharati decide regarding basic structure?",
+    "expected_source": "local_rag",
+    "min_expected_confidence": 0.75,
+    "description": "Supreme Court 13-judge bench ruling from supreme_court_judgments.pdf."
+  },
+  {
+    "id": "TC-03",
+    "name": "Fundamental Rights (Constitutional Law)",
+    "query": "What are fundamental rights under Article 21 and Article 14?",
+    "expected_source": "local_rag",
+    "min_expected_confidence": 0.75,
+    "description": "Part III equality and personal liberty provisions from constitution.pdf."
+  },
+  {
+    "id": "TC-04",
+    "name": "Bail Jurisprudence (Supreme Court)",
+    "query": "What are the bail guidelines in Satender Kumar Antil?",
+    "expected_source": "local_rag",
+    "min_expected_confidence": 0.75,
+    "description": "4-tier bail guidelines from supreme_court_judgments.pdf."
+  },
+  {
+    "id": "TC-05",
+    "name": "Arbitration Law (New Document Test)",
+    "query": "What are the grounds for setting aside an arbitral award under Section 34 of the Arbitration Act?",
+    "expected_source": "local_rag",
+    "min_expected_confidence": 0.75,
+    "description": "Tests multi-document ingestion of sample_arbitration_act.pdf."
+  },
+  {
+    "id": "TC-06",
+    "name": "Contract Damages (New Document Test)",
+    "query": "What compensation is recoverable for breach of contract under Section 73 of Indian Contract Act?",
+    "expected_source": "local_rag",
+    "min_expected_confidence": 0.75,
+    "description": "Tests multi-document ingestion of sample_commercial_contracts.pdf."
+  },
+  {
+    "id": "TC-07",
+    "name": "Out-of-Domain Penal Fallback",
+    "query": "tell me about section 420",
+    "expected_source": "gemini_fallback",
+    "min_expected_confidence": 0.0,
+    "description": "Cheating / Penal code query; triggers live web search grounding."
+  },
+  {
+    "id": "TC-08",
+    "name": "Out-of-Domain Commercial Tax Fallback",
+    "query": "how to calculate capital gains tax on mutual funds",
+    "expected_source": "gemini_fallback",
+    "min_expected_confidence": 0.0,
+    "description": "Income tax query; triggers live online search grounding."
+  }
+]
