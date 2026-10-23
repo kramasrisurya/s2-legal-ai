@@ -418,6 +418,27 @@ def match_harm_or_violent_crime_query(query: str) -> Optional[Dict[str, Any]]:
             "query": query,
         }
 
+    # 4. Robbery, Dacoity, Bank Robbery, Theft, Looting & Heists:
+    # "can i rob bank?", "can i rob a bank?", "how to rob a bank", "can i steal money", "can i loot", "can we rob"
+    robbery_pattern = (
+        r"\b(can\s+i|can\s+we|may\s+i|is\s+it\s+legal(?:\s+to)?|is\s+it\s+allowed(?:\s+to)?|"
+        r"how\s+to|how\s+can\s+i|how\s+do\s+i|should\s+i|i\s+want\s+to|i\s+need\s+to|"
+        r"allowed\s+to|permission\s+to|ways\s+to|can\s+one|could\s+i|where\s+can\s+i)\s+"
+        r"(?:commit\s+)?(rob|robbery|dacoit|dacoity|steal|theft|loot|looting|extort|extortion|burgle|burglary|heist)\b|"
+        r"\b(rob|robbery|dacoity|steal|loot|extort)\s+(?:a\s+|the\s+)?(bank|atm|cash|money|store|shop|house|person|jewelry|jewellery|gold|vault)\b|"
+        r"\b(is\s+robbing\s+legal|is\s+stealing\s+legal|is\s+dacoity\s+legal|is\s+looting\s+legal)\b|"
+        r"\brob\s+bank\b|\bcan\s+i\s+rob\b"
+    )
+    if re.search(robbery_pattern, clean):
+        target_m = re.search(r"\b(bank|atm|vault|store|shop|house|person|cash|money|gold|jewelry|jewellery)\b", clean)
+        target = target_m.group(1) if target_m else "a bank or financial institution"
+        return {
+            "type": "robbery_dacoity",
+            "action": "rob",
+            "target": target,
+            "query": query,
+        }
+
     return None
 
 
@@ -426,11 +447,64 @@ def synthesize_violent_harm_response(
 ) -> Tuple[str, List[str]]:
     """
     Synthesizes an immediate, unequivocal, authoritative legal declaration establishing
-    that killing or causing physical harm is strictly prohibited under Indian Law,
-    details the governing penal statutes (Section 300/302 IPC & Section 101/103 BNS),
-    punishment (Death Penalty / Life Imprisonment), private defence boundaries,
-    civil dispute remedies, and crisis emergency helplines.
+    that killing, causing physical harm, or committing robbery/dacoity is strictly prohibited
+    under Indian Law, details the governing penal statutes (IPC / BNS),
+    punishment, procedural classification, and emergency numbers.
     """
+    crime_type = match_info.get("type", "violent_harm")
+
+    # A. ROBBERY & DACOITY & BANK HEIST HANDLER
+    if crime_type == "robbery_dacoity":
+        target = match_info.get("target", "a bank")
+        target_str = f"a {target}" if not target.startswith("a ") else target
+        if "bank" in target:
+            target_str = "a bank or any financial institution"
+
+        text = (
+            f"### 🚨 ABSOLUTELY NOT: Robbery & Dacoity are Severe Capital Offences Under Indian Law\n\n"
+            f"> ⚠️ **IMMEDIATE LEGAL DECLARATION**:\n"
+            f"> **NO, you CANNOT rob {target_str} or any person or establishment under any circumstances.**\n"
+            f"> Under Indian Criminal Law, attempting, planning, or committing robbery or dacoity is strictly prohibited, "
+            f"constitutes grave non-bailable felony offences, and is punishable by **LIFE IMPRISONMENT** or rigorous imprisonment up to **10 to 14 YEARS**, plus fine and property attachment.\n\n"
+            f"---\n\n"
+            f"### ⚖️ Governing Penal Framework (IPC 1860 vs BNS 2023 Concordance)\n\n"
+            f"| Legal Metric | Indian Penal Code (IPC 1860) | Bharatiya Nyaya Sanhita (BNS 2023) |\n"
+            f"|---|---|---|\n"
+            f"| **Offence of Robbery** | **Section 390 IPC** | **Section 309 BNS** |\n"
+            f"| **Punishment for Robbery** | **Section 392 IPC** (Up to **10 Years** RI / **14 Years** on Highway + Fine) | **Section 310(2) BNS** (Up to 10-14 Years RI + Fine) |\n"
+            f"| **Offence of Dacoity** (5+ Persons) | **Section 391 IPC** | **Section 310(1) BNS** |\n"
+            f"| **Punishment for Dacoity** | **Section 395 IPC** (**Imprisonment for Life** or RI up to 10 Years + Fine) | **Section 310(2) BNS** (Life Impr. or RI up to 10 Years) |\n"
+            f"| **Robbery/Dacoity with Deadly Weapon** | **Section 397 IPC** (Mandatory Minimum **7 Years** RI) | **Section 311 BNS** (Mandatory Minimum 7 Years RI) |\n"
+            f"| **Attempt when Armed with Deadly Weapon** | **Section 398 IPC** (Mandatory Minimum **7 Years** RI) | **Section 312 BNS** (Mandatory Minimum 7 Years RI) |\n"
+            f"| **Making Preparation to Commit Dacoity** | **Section 399 IPC** (Rigorous Imprisonment up to **10 Years** + Fine) | **Section 310(4) BNS** (RI up to 10 Years + Fine) |\n"
+            f"| **Assembling for Purpose of Dacoity** | **Section 402 IPC** (Rigorous Imprisonment up to **7 Years** + Fine) | **Section 310(5) BNS** (RI up to 7 Years + Fine) |\n"
+            f"| **Cognizability** | **Cognizable** (Immediate Police arrest without warrant) | **Cognizable** |\n"
+            f"| **Bail Classification** | **Strictly Non-Bailable** (Bail is exception, rarely granted) | **Strictly Non-Bailable** |\n"
+            f"| **Trial Jurisdiction** | **Court of Session** (Exclusive Jurisdiction) | **Court of Session** |\n\n"
+            f"---\n\n"
+            f"### 🛡️ Severe Criminal, Procedural & Firearms Consequences\n"
+            f"1. **Armed Law Enforcement Intervention**: Under Section 46 CrPC / Section 43 BNSS, police officers are empowered to use all necessary force, including firearms, to effect the arrest of a person accused of offences punishable with death or life imprisonment.\n"
+            f"2. **Arms Act, 1959 Violations**: Possessing, carrying, or using unlicensed firearms, country-made pistols, or prohibited weapons attracts mandatory 7 to 14 years imprisonment under **Sections 25 and 27 of the Arms Act**.\n"
+            f"3. **Attachment of Absconder Properties (Sec 82/83 CrPC / Sec 84/85 BNSS)**: If an accused attempts to evade arrest, the court immediately issues a proclamation and attaches/freezes all bank accounts and immovable properties.\n"
+            f"4. **No Bail & Long Incarceration**: Under *Satender Kumar Antil v. CBI*, Category C and D violent/armed offences require strict judicial scrutiny where bail is routinely denied pending trial.\n\n"
+            f"---\n\n"
+            f"### 🏛️ Financial Distress & Lawful Avenues\n"
+            f"If you or someone you know is facing extreme financial desperation, debt distress, or pressure:\n"
+            f"• **National Emergency Helpline**: **112**\n"
+            f"• **Insolvency & Debt Resolution**: File an insolvency petition under the Provincial Insolvency Act / IBC for lawful debt restructuring.\n"
+            f"• **Tele-MANAS Distress Helpline**: **14416** or **1800-891-4416** (24x7 Free Psychological & Crisis Support)"
+        )
+
+        citations = [
+            "[Local ChromaDB] backend/data/indian_penal_code_1860.pdf (Section 390: Robbery, Section 392: Punishment, Section 395: Dacoity)",
+            "[Statute] Bharatiya Nyaya Sanhita (BNS), 2023 - Section 309 (Robbery) & Section 310 (Dacoity & Sanctions)",
+            "[Statute] Arms Act, 1959 - Section 25 & 27 (Severe Penalties for Unlicensed Weapons)",
+            "[Procedural Law] Code of Criminal Procedure, 1973 - First Schedule (Cognizable, Non-Bailable, Sessions Court)",
+        ]
+
+        return text, citations
+
+    # B. VIOLENT HARM & HOMICIDE HANDLER
     target = match_info.get("target", "another person")
     if target in {"brother", "bro"}:
         target_str = "your brother"

@@ -1274,7 +1274,15 @@ def synthesize_local_rag_answer(
             "• **Constitutional Remedies**: Enforce binding legal ratios via writ petitions under **Article 32** (Supreme Court) or **Article 226** (High Court).\n"
             "• **Appellate Jurisdiction**: Challenge non-compliant lower court decisions via Special Leave Petition under **Article 136**."
         )
-    else:
+    elif "scenario" in primary_source or "scenarios" in primary_source:
+        summary_title = "Practical Legal Assessment & Dispute Precedents"
+        prov_title = f"Verified Statutory Guidance & Case Precedents ({primary_heading})"
+        strategy = (
+            "• **Evidentiary Documentation**: Collate primary records (notices, receipts, bank statements, or title deeds) to maintain your cause of action.\n"
+            "• **Forum Determination**: Institute proceedings before the competent Civil or Criminal court having territorial jurisdiction over the dispute.\n"
+            "• **Interlocutory Remedies**: File urgent interim applications (Order 39 Rules 1-2 CPC or statutory bail/protection) where immediate legal relief is required."
+        )
+    elif "constitution" in primary_source or "article" in primary_heading.lower():
         summary_title = "Key Takeaway & Constitutional Summary"
         prov_title = f"Governing Constitutional Provision ({primary_heading})"
         strategy = (
@@ -1282,13 +1290,25 @@ def synthesize_local_rag_answer(
             "• **Appellate Review**: Judicial orders of lower courts or tribunals can be challenged before the Supreme Court via Special Leave Petition under **Article 136**.\n"
             "• **Binding Precedent**: Precedent established by the Supreme Court is binding on all courts throughout India pursuant to **Article 141**."
         )
+    else:
+        summary_title = "Key Takeaway & Statutory Analysis"
+        prov_title = f"Verified Statutory Authority ({primary_heading})"
+        strategy = (
+            "• **Statutory Adherence**: Scrutinize the substantive legislative ingredients and evidentiary burden under Indian law.\n"
+            "• **Competent Court**: Initiate proceedings before the jurisdictional forum (Civil Judge / Magistrate / District Court).\n"
+            "• **Appellate Avenue**: Review applicable limitation windows and statutory appeal mechanisms before filing."
+        )
 
     primary_title_clean = re.sub(r"^(?:\d+[\w]?\.|section\s+\d+|article\s+\d+)[:\.\s—–-]*", "", primary_heading, flags=re.IGNORECASE).strip()
-    primary_label = f" primarily for **{primary_title_clean.upper()}**." if primary_title_clean else "."
+    is_genuine_statute = bool(re.search(r"\b(section|article|act|order|rule)\b", primary_heading, re.IGNORECASE)) or len(query_nums) > 0
+    if is_genuine_statute and primary_title_clean and not any(kw in primary_title_clean.lower() for kw in ["action plan", "protocol", "step", "golden hour", "checklist"]):
+        primary_label = f" primarily for **{primary_title_clean.upper()}**."
+    else:
+        primary_label = " established under authoritative Indian statutes and judicial precedents."
 
     return (
         f"### ⚖️ {primary_heading}\n\n"
-        f"> 📌 **PRIMARY PURPOSE**: Under Indian Law, this provision is{primary_label}\n\n"
+        f"> 📌 **PRIMARY PURPOSE**: Under Indian Law, this guidance is{primary_label}\n\n"
         f"### 📜 {prov_title}\n"
         f"{body_text}{concordance_block}\n\n"
         f"### ⚖️ Statutory Context & Corroborating Authorities\n"
