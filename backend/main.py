@@ -56,7 +56,7 @@ logging.basicConfig(
 logger = logging.getLogger("AGENTIC_ROUTER")
 
 # Core Constants & Configuration
-SIMILARITY_THRESHOLD: float = float(os.getenv("SIMILARITY_THRESHOLD", "0.75"))
+SIMILARITY_THRESHOLD: float = float(os.getenv("SIMILARITY_THRESHOLD", "0.65"))
 BASE_DIR: Path = Path(__file__).resolve().parent
 DB_DIR: Path = BASE_DIR / "db" / "chroma_data"
 COLLECTION_NAME: str = "indian_legal_corpus"
@@ -167,17 +167,43 @@ class VectorStoreManager:
         Calibrates cosine distance from BAAI/bge-small-en-v1.5 to an academic similarity score.
         In cosine space with unit-normalized embeddings:
         - raw_sim = 1.0 - distance.
-        - High-precision domain queries (e.g. Kesavananda, Article 21, Satender Kumar Antil)
-          typically produce raw distances between 0.21 and 0.28 (raw_sim 0.72 - 0.79).
-        - A domain-term corroboration boost accounts for explicit statutory/case law lexical overlap.
+        - Boosts for exact statutory section numbers, article numbers, and legal keywords.
+        - Downweights pure Table-of-Contents / arrangement of sections chunks.
         """
         if raw_score <= 1.0:
             raw_sim = 1.0 - float(raw_score)
         else:
             raw_sim = 1.0 / (1.0 + float(raw_score))
 
-        q_tokens = set(re.findall(r"\b[a-zA-Z0-9]{3,}\b", query.lower()))
-        doc_tokens = set(re.findall(r"\b[a-zA-Z0-9]{3,}\b", doc_text.lower()))
+        q_lower = query.lower()
+        doc_lower = doc_text.lower()
+
+        # Check for Table of Contents / Arrangement of sections page
+        # If it's merely a list of sections without definitions, apply a small penalty so substantive sections rank first
+        is_toc = "arrangement of sections" in doc_lower or (doc_lower.count("chapter") > 1 and doc_lower.count("sections") > 1)
+        toc_penalty = 0.12 if is_toc else 0.0
+
+        # Exact section / article number matching
+        # Matches e.g. 420, 302, 378, 498a, 120b, 84, 14, 21, 32, 226, 368
+        query_nums = set(re.findall(r"\b(\d+[a-zA-Z]?)\b", query))
+        doc_nums = set(re.findall(r"\b(\d+[a-zA-Z]?)\b", doc_text))
+        common_nums = query_nums & doc_nums
+
+        section_boost = 0.0
+        if common_nums:
+            statutory_indicators = ["section", "sec", "article", "art", "ipc", "act", "code", "provision", "punishment", "about"]
+            if any(term in q_lower for term in statutory_indicators):
+                has_section_heading = any(
+                    re.search(r"(?:section\s+|sec\.?\s*|^|\n)" + re.escape(num) + r"(?:\.|\s|\b)", doc_lower)
+                    for num in common_nums
+                )
+                section_boost = 0.20 if has_section_heading else 0.16
+            else:
+                section_boost = 0.08
+
+        # Legal concept lexical overlap boost
+        q_tokens = set(re.findall(r"\b[a-zA-Z0-9]{3,}\b", q_lower))
+        doc_tokens = set(re.findall(r"\b[a-zA-Z0-9]{3,}\b", doc_lower))
 
         stop_words = {
             "what", "which", "where", "when", "that", "this", "from", "with",
@@ -185,10 +211,9 @@ class VectorStoreManager:
             "decide", "give", "please", "into", "their", "there", "some", "more"
         }
         legal_matches = (q_tokens & doc_tokens) - stop_words
+        overlap_boost = min(0.10, len(legal_matches) * 0.025)
 
-        # Up to +0.08 corroboration boost for multiple keyword matches
-        overlap_boost = min(0.08, len(legal_matches) * 0.02)
-        calibrated_sim = min(1.0, max(0.0, raw_sim + overlap_boost))
+        calibrated_sim = min(1.0, max(0.0, raw_sim + section_boost + overlap_boost - toc_penalty))
         return round(calibrated_sim, 4)
 
     def retrieve_with_similarity(
@@ -204,7 +229,10 @@ class VectorStoreManager:
             logger.warning("[ROUTER] Vector database is empty. No local chunks available.")
             return []
 
-        results_with_score = self.vector_store.similarity_search_with_score(query, k=top_k)
+        # Retrieve a broader candidate pool (max 20) to ensure HNSW graph explores thoroughly,
+        # then rerank and calibrate with exact section numbers and legal overlap boosts.
+        candidate_k = max(20, top_k * 4)
+        results_with_score = self.vector_store.similarity_search_with_score(query, k=candidate_k)
         processed: List[Tuple[Document, float]] = []
 
         for doc, score in results_with_score:
@@ -212,7 +240,7 @@ class VectorStoreManager:
             processed.append((doc, similarity))
 
         processed.sort(key=lambda x: x[1], reverse=True)
-        return processed
+        return processed[:top_k]
 
 
 vector_manager = VectorStoreManager(DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL_NAME)
@@ -790,8 +818,14 @@ def synthesize_local_rag_answer(
     primary_source = primary_doc.metadata.get("source_file", "").lower()
 
     lines = [l.strip() for l in primary_content.split("\n") if l.strip()]
-    primary_heading = lines[0] if lines else "Statutory Authority"
-    body_text = "\n".join(lines[1:]) if len(lines) > 1 else primary_content
+    heading_idx = 0
+    for idx, line in enumerate(lines):
+        if re.search(r"^(?:\d+[\w]?\.|section\s+\d+|article\s+\d+|chapter\s+|part\s+|landmark)", line, re.IGNORECASE):
+            heading_idx = idx
+            break
+
+    primary_heading = lines[heading_idx] if lines else "Statutory Authority"
+    body_text = "\n".join(lines[heading_idx:]) if heading_idx < len(lines) else primary_content
 
     supporting_sections = []
     for d, s in retrieved[1:4]:
