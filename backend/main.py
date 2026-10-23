@@ -1079,9 +1079,64 @@ def synthesize_online_search_answer(
             "> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
         )
 
-    # 6. General Legal Research with Filtered Snippets
+    # 6. Wills, Testamentary Succession & Conflicting Wills (Indian Succession Act, 1925)
+    if any(k in q_lower for k in ["will", "wills", "probate", "inheritance", "codicil", "testament", "testator", "succession"]):
+        return (
+            f"### 📜 Legal Framework: Wills, Probate & Inheritance Disputes\n"
+            f"Under Indian Law, testamentary succession is governed primarily by the **Indian Succession Act, 1925** "
+            f"and the **Bharatiya Sakshya Adhiniyam, 2023 (BSA)** / Indian Evidence Act, 1872.\n\n"
+            f"### ⚖️ Governing Statutory Rules on Wills\n"
+            f"1. **Rule of Later Will (Section 62 Indian Succession Act)**: A Will is revocable by the testator until death. "
+            f"Where two or more conflicting wills exist, the **subsequent validly executed Will supersedes and revokes earlier inconsistent wills**.\n"
+            f"2. **Mandatory Execution & Attestation (Section 63(c) ISA)**: The Will must be signed by the testator in the presence of at least **TWO attesting witnesses**, each of whom must sign in the presence of the testator.\n"
+            f"3. **Burden of Proof & Suspicious Circumstances (*H. Venkatachala Iyengar v. B.N. Thimmajamma*, AIR 1959 SC 443)**: "
+            f"The propounder of the Will must prove sound disposing mind and dispel all suspicious circumstances.\n"
+            f"4. **Proof of Attesting Witness (Section 68 & 69 BSA)**: At least one attesting witness must be examined in court. If both witnesses are dead, the Will is proved under Section 69 by proving the handwriting of one witness and the testator.\n\n"
+            f"### 🛡️ Procedural Roadmap ({role.upper()} Perspective)\n"
+            f"- **Lodge Caveat (Section 148A CPC / Section 284 ISA)**: File an immediate Caveat in the District Court to prevent ex-parte probate.\n"
+            f"- **Petition for Probate (Section 276 ISA)**: File formal probate petition before the District Judge (or High Court Testamentary Division in presidency towns).\n"
+            f"- **Status Quo Injunction (Order 39 Rules 1-2 CPC)**: Move urgent application restraining all co-heirs from selling or transferring estate properties.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+
+    # 7. Ancestral Property & Partition (Hindu Succession Act, 1956)
+    if any(k in q_lower for k in ["ancestral", "partition", "coparcener", "coparcenary", "daughters share", "family property"]):
+        return (
+            f"### 🏛️ Legal Framework: Ancestral Property Partition & Coparcenary Rights\n"
+            f"Under the **Hindu Succession Act, 1956** (as amended by Act 39 of 2005), ancestral coparcenary property devolves by birthright:\n\n"
+            f"### ⚖️ Statutory Framework & Precedents\n"
+            f"1. **Equal Coparcenary Rights for Daughters (Section 6 HSA)**: As settled by the Supreme Court 3-Judge Bench in ***Vineeta Sharma v. Rakesh Sharma* (2020) 9 SCC 1**, "
+            f"daughters are coparceners by birth with equal rights and liabilities identical to sons, irrespective of whether the father was alive on 09.09.2005.\n"
+            f"2. **Intestate Succession (Section 8 HSA)**: If the father or ancestor died without a valid Will, property devolves equally among all Class-I heirs (widow, sons, daughters, mother).\n"
+            f"3. **Injunction Restraining Sale (Order 39 Rules 1 & 2 CPC)**: Co-owners or brothers have zero legal authority to alienate or sell joint ancestral land without partition.\n\n"
+            f"### 🛡️ Procedural Strategy ({role.upper()})\n"
+            f"- **Civil Partition Suit**: File a formal Suit for Partition and Separate Possession before the Civil Court (Section 16 CPC).\n"
+            f"- **Temporary Injunction**: Move an urgent application under Order 39 Rules 1-2 CPC to restrain third-party transfers and preserve joint possession.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+
+    # 8. Commercial & Contractual Disputes (Indian Contract Act, 1872)
+    if any(k in q_lower for k in ["contract", "agreement", "breach", "refund", "damages", "recovery"]):
+        return (
+            f"### 💼 Legal Framework: Breach of Contract & Commercial Remedies\n"
+            f"Commercial contracts and business obligations in India are governed by the **Indian Contract Act, 1872** "
+            f"and the **Commercial Courts Act, 2015**:\n\n"
+            f"### ⚖️ Key Legal Principles\n"
+            f"1. **Damages for Breach (Section 73 Indian Contract Act)**: The non-defaulting party is entitled to compensation for any direct loss naturally arising in the usual course of things from the breach.\n"
+            f"2. **Liquidated Damages & Penalty (Section 74 ICA)**: Reasonable compensation not exceeding the agreed penalty amount (*Kailash Nath Associates v. DDA*).\n"
+            f"3. **Pre-Institution Mediation (Section 12A Commercial Courts Act)**: Mandatory pre-litigation mediation unless urgent interim relief is prayed for.\n\n"
+            f"### 🛡️ Strategic Roadmap ({role.upper()})\n"
+            f"- **Statutory Demand Notice**: Issue formal legal notice detailing default, cure period, and computation of damages.\n"
+            f"- **Summary Suit (Order XXXVII CPC)**: If debt arises on written contract, bill of exchange, or promissory note, file summary suit for expeditious decree without regular trial delay.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+
+    # 9. General Substantive Legal Analysis with Filtered Snippets
     snippet_texts = [f"• **{s['title']}**: {s['snippet']}" for s in snippets[:3]]
-    snippets_block = "\n".join(snippet_texts) if snippet_texts else "Statutory concordance verified via legislative registers."
+    snippets_block = "\n".join(snippet_texts) if snippet_texts else (
+        "• Legislative Framework: Indian Substantive & Procedural Codes (CPC, CrPC/BNSS, Evidence Act/BSA)\n"
+        "• Judicial Forum: Competent Civil / Criminal Court having subject-matter and territorial jurisdiction"
+    )
 
     return (
         f"### 🔍 Legal Research Analysis: {query}\n"
@@ -1089,12 +1144,11 @@ def synthesize_online_search_answer(
         f"### 🌐 Verified Legal Grounding\n"
         f"{snippets_block}\n\n"
         f"### ⚖️ Procedural & Strategic Insights ({role.upper()})\n"
-        f"- **Statutory Transition**: Verify whether cause of action arose prior to or following July 1, 2024 to apply "
-        f"the legacy codes (IPC/CrPC/IEA) or the newly enacted criminal codes (BNS/BNSS/BSA).\n"
-        f"- **Judicial Hierarchy**: Ensure proceedings are instituted in the court of competent jurisdiction "
-        f"(pecuniary, territorial, and subject-matter).\n"
-        f"- **Remedies**: Evaluate available writ remedies before the High Court (Article 226) or Supreme Court (Article 32) "
-        f"or statutory revision/appeal mechanisms.\n\n"
+        f"- **Forum Determination**: Ascertain whether the matter constitutes a Civil dispute (remedy before the Civil Court under CPC / Specific Relief Act) "
+        f"or a Criminal grievance (complaint / FIR under BNSS / BNS).\n"
+        f"- **Judicial Hierarchy**: Institute proceedings before the competent court of first instance having pecuniary and territorial jurisdiction.\n"
+        f"- **Limitation Period**: Verify applicable filing deadlines under the **Limitation Act, 1963** to ensure claims are not barred by efflux of time.\n"
+        f"- **Interim Protection**: Move interlocutory applications for status quo or injunction where immediate irreparable harm is threatened.\n\n"
         f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
     )
 
@@ -1295,6 +1349,282 @@ def build_local_constitutional_prompt(
 
 
 # ==============================================================================
+# Conversational Memory & Multi-Turn Follow-Up Engine
+# ==============================================================================
+
+def extract_conversation_context(history: List[MessageItem]) -> Dict[str, Any]:
+    """
+    Scans recent conversation history to identify active legal topic, disputed
+    subject matter, and key entities for multi-turn follow-up queries.
+    """
+    if not history:
+        return {}
+
+    history_texts = [m.content for m in history[-6:]]
+    combined_history = " ".join(history_texts).lower()
+
+    # 1. Wills, Succession, Conflicting Wills & Probate
+    if any(k in combined_history for k in ["will", "wills", "probate", "inheritance", "grandfather", "grandmother", "testamentary", "codicil", "conflicting wills"]):
+        return {
+            "domain": "wills_probate",
+            "statute": "Indian Succession Act, 1925",
+            "subject": "grandfather's conflicting wills and inheritance dispute",
+            "court": "Court of the District Judge (or High Court Testamentary Division)",
+        }
+
+    # 2. Ancestral Property & Partition
+    if any(k in combined_history for k in ["ancestral property", "partition", "coparcener", "coparcenary", "daughters equal share", "father died without will"]):
+        return {
+            "domain": "ancestral_partition",
+            "statute": "Hindu Succession Act, 1956",
+            "subject": "ancestral property partition and coparcenary share",
+            "court": "Civil Judge / District Court",
+        }
+
+    # 3. Matrimonial Cruelty & Dowry (498A / DV Act)
+    if any(k in combined_history for k in ["498a", "cruelty", "dowry", "domestic violence", "stridhan", "matrimonial"]):
+        return {
+            "domain": "matrimonial_cruelty",
+            "statute": "Section 498A IPC / Section 85 BNS & PWDVA 2005",
+            "subject": "matrimonial cruelty, maintenance, and domestic violence",
+            "court": "Judicial Magistrate First Class (JMFC) / Family Court",
+        }
+
+    # 4. Cheque Bounce (Section 138 NI Act)
+    if any(k in combined_history for k in ["cheque", "check", "138", "bounced", "dishonour", "bank memo"]):
+        return {
+            "domain": "cheque_bounce",
+            "statute": "Negotiable Instruments Act, 1881",
+            "subject": "dishonour of cheque and debt recovery under Section 138 NI Act",
+            "court": "Court of the Judicial Magistrate / Metropolitan Magistrate",
+        }
+
+    # 5. Violent Crime & Murder (Section 300/302 IPC)
+    if any(k in combined_history for k in ["kill", "murder", "300", "302", "assault"]):
+        return {
+            "domain": "violent_crime_murder",
+            "statute": "Indian Penal Code / Bharatiya Nyaya Sanhita 2023",
+            "subject": "penal prohibitions and legal consequences of murder/assault",
+            "court": "Court of Session",
+        }
+
+    return {}
+
+
+def is_followup_query(query: str, history: List[MessageItem]) -> bool:
+    """Detects whether incoming query is a conversational follow-up to previous turns."""
+    if not history:
+        return False
+    q_lower = query.lower().strip()
+
+    followup_patterns = [
+        r"\b(which court|what court|where to file|where should i file|where should i go|which jurisdiction)\b",
+        r"\b(can (he|she|they|my uncle|my brother|my sister|anyone) sell)\b",
+        r"\b(what if (a|the|one)?\s*(witness|attesting witness|doctor)\b)",
+        r"\b(witness is dead|witness died|witnesses are dead|witness refuses)\b",
+        r"\b(how long|how much time|timeline|limitation period|time limit)\b",
+        r"\b(what (should i|do i|to) do next|next step|what next|what now)\b",
+        r"\b(how to draft|draft a|caveat|format of caveat|petition format)\b",
+        r"\b(can i get (an )?injunction|stay order|stop (them|him|her|sale))\b",
+        r"\b(what evidence|how to prove|what proof|burden of proof)\b",
+    ]
+    for pat in followup_patterns:
+        if re.search(pat, q_lower):
+            return True
+
+    # If query is short (< 8 words) and lacks an explicit macro legal domain keyword
+    macro_keywords = ["ipc", "crpc", "bns", "bnss", "bsa", "constitution", "article", "section", "act", "cheque", "divorce", "murder"]
+    if len(q_lower.split()) <= 7 and not any(k in q_lower for k in macro_keywords):
+        return True
+
+    return False
+
+
+def reformulate_query_with_history(query: str, history: List[MessageItem]) -> str:
+    """Enriches a short follow-up query with previous conversation topic context."""
+    ctx = extract_conversation_context(history)
+    if not ctx:
+        return query
+    subject = ctx.get("subject", "legal dispute")
+    statute = ctx.get("statute", "Indian Law")
+    return f"{query} regarding {subject} under {statute}"
+
+
+def handle_conversational_followup(
+    query: str, history: List[MessageItem], role: str
+) -> Optional[Tuple[str, List[str]]]:
+    """
+    Directly answers specific legal follow-up questions (court jurisdiction, stopping property sale,
+    witness death, statutory timelines, caveats) within the context of previous conversation.
+    """
+    if not history:
+        return None
+
+    ctx = extract_conversation_context(history)
+    if not ctx:
+        return None
+
+    domain = ctx.get("domain")
+    q_lower = query.lower().strip()
+
+    # --------------------------------------------------------------------------
+    # A. WILLS, PROBATE & INHERITANCE FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "wills_probate":
+        # 1. Jurisdictional Court
+        if re.search(r"\b(which court|where to file|where should i file|where should i go|which jurisdiction|competent court)\b", q_lower):
+            text = (
+                f"### 🏛️ Jurisdictional Court for Disputed Wills & Probate\n\n"
+                f"In continuation of our discussion regarding **{ctx['subject']}**, here is the exact court having jurisdiction:\n\n"
+                f"### ⚖️ Competent Judicial Forum\n"
+                f"1. **Primary Forum — Court of the District Judge (Principal Civil Court of Original Jurisdiction)**:\n"
+                f"   - Under **Sections 270 and 271 of the Indian Succession Act, 1925**, the petition for grant of **Probate** (if an executor is named in the Will) "
+                f"or **Letters of Administration with the Will Annexed** (if filed by a beneficiary or legal heir) must be instituted before the **District Judge** "
+                f"within whose territorial jurisdiction your grandfather had a fixed place of abode at the time of his death, or within whose jurisdiction any of the disputed estate property is located.\n\n"
+                f"2. **High Court Ordinary Original Civil Jurisdiction (Presidency Towns)**:\n"
+                f"   - If the property is situated in **Mumbai, Kolkata, or Chennai**, the petition can be filed directly before the testamentary bench of the **High Court** "
+                f"(Bombay High Court, Calcutta High Court, or Madras High Court) exercising ordinary original testamentary jurisdiction.\n\n"
+                f"3. **Conversion into a Contested Testamentary Suit**:\n"
+                f"   - Once you file the petition, the court issues general citations (newspaper publication) and individual notices to all Class-I legal heirs.\n"
+                f"   - If the rival party (e.g. uncle, cousin, or another heir) files a **Caveat / Objection** under Section 284 of the Indian Succession Act, "
+                f"the probate proceeding is automatically re-numbered and tried as a regular **Contested Testamentary Suit** governed by the **Code of Civil Procedure, 1908 (CPC)**.\n\n"
+                f"### 🛡️ Immediate Action Plan ({role.upper()})\n"
+                f"• **Step 1**: File an immediate **Caveat under Section 148A CPC / Section 284 Indian Succession Act** in the District Court to prevent the rival party from obtaining an ex-parte probate.\n"
+                f"• **Step 2**: Lodge an application under **Order 39 Rules 1 & 2 CPC** for a temporary status quo injunction restraining all heirs from mutating or selling the property.\n"
+                f"• **Step 3**: File the substantive Probate Petition under **Section 276 Indian Succession Act** with the original Will, death certificate, and property schedules."
+            )
+            citations = [
+                "[Statute] Indian Succession Act, 1925 - Section 270 & 271 (Jurisdiction of District Judge in granting Probate)",
+                "[Statute] Indian Succession Act, 1925 - Section 276 (Petition for Probate) & Section 284 (Caveats)",
+                "[Procedural Code] Code of Civil Procedure, 1908 - Section 148A (Caveat) & Order XXXIX Rules 1 & 2 (Injunction)",
+                "[Landmark Precedent] Chiranjilal Shrilal Goenka v. Jasjit Singh (1993) 2 SCC 507 (Probate Court has exclusive jurisdiction)",
+            ]
+            return text, citations
+
+        # 2. Uncle selling / Alienation / Stopping property transfer
+        if re.search(r"\b(can (he|they|my uncle|my brother|anyone) sell|stop (them|him|sale)|selling property|transfer property|mutate)\b", q_lower):
+            text = (
+                f"### 🛑 CANNOT SELL: Strict Legal Bar on Selling Disputed Inheritance Property\n\n"
+                f"> ⚠️ **DIRECT LEGAL ANSWER**:\n"
+                f"> **NO. Neither your uncle nor any other family member can legally sell, mortgage, or transfer the estate property while the Wills are disputed and unprobated.**\n\n"
+                f"### ⚖️ Governing Statutory Protections & Restraints\n"
+                f"1. **Doctrine of Lis Pendens (Section 52 Transfer of Property Act, 1882)**:\n"
+                f"   - Once probate or civil litigation is instituted, no party can transfer or alienate the property so as to affect the rights of any other claimant. "
+                f"Any sale deed executed during pendency of proceedings is legally voidable and subservient to the final court judgment.\n\n"
+                f"2. **Ad-Interim Status Quo Injunction (Order 39 Rules 1 & 2 CPC / Section 151 CPC)**:\n"
+                f"   - You can immediately move an urgent application before the Civil Court / District Judge seeking a **Temporary Injunction** "
+                f"restraining your uncle and all other parties from: (a) selling or creating third-party rights, (b) changing possession, or (c) carrying out unauthorized demolition/construction.\n\n"
+                f"3. **Administrator Pendente Lite (Section 247 Indian Succession Act, 1925)**:\n"
+                f"   - If your uncle attempts to misappropriate income, rents, or dispose of assets, the court has statutory power under Section 247 to appoint an **independent court receiver/administrator** "
+                f"to take custody of the estate, collect rents, and deposit them in court until the probate suit is resolved.\n\n"
+                f"4. **Intimation to Sub-Registrar & Revenue Tehsildar**:\n"
+                f"   - Issue a formal written legal notice to the jurisdictional **Sub-Registrar of Assurances** attaching a copy of the death certificate, conflicting wills notice, and pending court case, "
+                f"putting the property schedule on the **Caution Register** so no sale deed can be registered.\n"
+                f"   - Lodge an objection with the Revenue Tehsildar / Municipal Corporation to stay any unilateral property mutation."
+            )
+            citations = [
+                "[Statute] Transfer of Property Act, 1882 - Section 52 (Doctrine of Lis Pendens)",
+                "[Statute] Indian Succession Act, 1925 - Section 247 (Administrator Pendente Lite)",
+                "[Procedural Code] Code of Civil Procedure, 1908 - Order XXXIX Rules 1 & 2 (Temporary Injunctions)",
+                "[Precedent] Maharwal Khewaji Trust v. Baldev Dass (2004) 8 SCC 488 (Status quo must be preserved during property disputes)",
+            ]
+            return text, citations
+
+        # 3. Attesting Witness Dead / Proof of Will
+        if re.search(r"\b(witness.*(dead|died)|attesting witness.*(dead|died)|what if.*witness)\b", q_lower):
+            text = (
+                f"### 📜 How to Prove the Will When an Attesting Witness Has Died\n\n"
+                f"Under Indian Law, the death of one or even both attesting witnesses **DOES NOT invalidate the Will**.\n\n"
+                f"### ⚖️ Governing Evidentiary Provisions\n"
+                f"1. **If One Witness is Dead but One Witness is Alive**:\n"
+                f"   - Under **Section 68 of the Bharatiya Sakshya Adhiniyam, 2023 (BSA)** (formerly Section 68 of the Indian Evidence Act, 1872), "
+                f"it is legally sufficient to examine **ONE surviving attesting witness** in court to prove the valid execution of the Will.\n"
+                f"   - That surviving witness must testify that: (a) your grandfather signed/affixed his mark in their presence, (b) the deceased co-witness also attested the Will in their presence, "
+                f"and (c) grandfather was in sound mind and aware of the contents.\n\n"
+                f"2. **If BOTH Attesting Witnesses Are Dead (Section 69 BSA / Indian Evidence Act)**:\n"
+                f"   - Under **Section 69 BSA / Section 69 IEA**, where no attesting witness can be found or both are dead, the Will is proved by establishing:\n"
+                f"     1. **Proof of Witness Handwriting**: Proving that the signature and attestation of at least **one attesting witness** is in that witness's genuine handwriting.\n"
+                f"     2. **Proof of Grandfather's Signature**: Proving that the signature of your grandfather on the Will is in his genuine handwriting.\n\n"
+                f"### 🔍 How to Establish Proof in Court\n"
+                f"• **Admitted Comparison Documents**: Produce standard admitted signatures of the deceased witness (e.g. from bank accounts, registered deeds, or government records).\n"
+                f"• **Family / Colleague Testimonies**: Call family members, children, or colleagues of the deceased witness who are familiar with their signature under Section 47 Evidence Act / Section 41 BSA.\n"
+                f"• **Forensic Handwriting Expert (Section 39 BSA / Section 45 IEA)**: Obtain a formal forensic report comparing your grandfather's known admitted signatures with the signature on the Will."
+            )
+            citations = [
+                "[Evidence Law] Bharatiya Sakshya Adhiniyam, 2023 - Section 68 (Proof of execution of document required by law to be attested)",
+                "[Evidence Law] Bharatiya Sakshya Adhiniyam, 2023 - Section 69 (Proof where no attesting witness found or both dead)",
+                "[Statute] Indian Succession Act, 1925 - Section 63(c) (Execution and Attestation Requirements)",
+                "[Landmark Precedent] Babu Singh v. Ram Sahai (2008) 14 SCC 754 (Proof of Will under Section 69 when attesting witnesses are dead)",
+            ]
+            return text, citations
+
+        # 4. Timelines & Limitation
+        if re.search(r"\b(how long|timeline|limitation|time limit|how many years)\b", q_lower):
+            text = (
+                f"### ⏳ Statutory Timelines & Limitation for Probate Proceedings\n\n"
+                f"### ⚖️ Limitation Period to File Probate\n"
+                f"1. **Applicable Limitation Provision (Article 137 Limitation Act, 1963)**:\n"
+                f"   - The Supreme Court in *Kunvarjeet Singh Khandpur v. Kiranjit Kaur (2008)* held that an application for probate is governed by **Article 137 of the Limitation Act, 1963**, "
+                f"which prescribes a period of **3 YEARS**.\n"
+                f"   - The right to apply accrues NOT necessarily from the date of death, but **from the date when the dispute or challenge arises** (e.g., when the rival conflicting will is produced or probate is contested).\n\n"
+                f"### ⏱️ Estimated Court Timeframe\n"
+                f"• **Uncontested Probate**: 6 to 9 months (issuance of citations, newspaper publication, and verification of valuation by Collector).\n"
+                f"• **Contested Testamentary Suit**: 1.5 to 3 years (framing of issues, examination of witnesses and forensic experts, and final judgment).\n\n"
+                f"### 🛡️ Immediate Protective Action\n"
+                f"While the suit is pending, obtain an **Ad-Interim Status Quo Injunction** under Order 39 Rules 1-2 CPC so that time taken in court cannot be exploited by rival parties to alter possession."
+            )
+            citations = [
+                "[Statute] Limitation Act, 1963 - Article 137 (3-Year Limitation Period)",
+                "[Landmark Precedent] Kunvarjeet Singh Khandpur v. Kiranjit Kaur (2008) 8 SCC 463 (Limitation for Probate Applications)",
+                "[Procedural Law] Code of Civil Procedure, 1908 - Order XXXIX Rules 1 & 2",
+            ]
+            return text, citations
+
+    # --------------------------------------------------------------------------
+    # B. ANCESTRAL PROPERTY & PARTITION FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "ancestral_partition":
+        if re.search(r"\b(which court|where to file|jurisdiction)\b", q_lower):
+            text = (
+                f"### 🏛️ Jurisdictional Court for Ancestral Property Partition\n\n"
+                f"In continuation of our discussion regarding **{ctx['subject']}**:\n\n"
+                f"1. **Civil Court of Competent Pecuniary Jurisdiction**:\n"
+                f"   - A **Suit for Partition and Separate Possession** must be filed before the competent Civil Court (Junior Civil Judge, Senior Civil Judge, or District Judge depending on the market valuation of the property schedule) "
+                f"within whose territorial limits the ancestral properties are situated (Section 16 Code of Civil Procedure, 1908).\n\n"
+                f"2. **Mandatory Interlocutory Applications**:\n"
+                f"   - Accompany the plaint with an urgent application under **Order 39 Rules 1 & 2 CPC** for temporary injunction restraining brothers/co-owners from selling or mortgaging the joint properties."
+            )
+            citations = [
+                "[Statute] Code of Civil Procedure, 1908 - Section 16 (Suits to be instituted where subject-matter situate)",
+                "[Statute] Hindu Succession Act, 1956 - Section 6 (Equal coparcenary rights for daughters)",
+                "[Landmark Precedent] Vineeta Sharma v. Rakesh Sharma (2020) 9 SCC 1",
+            ]
+            return text, citations
+
+    # --------------------------------------------------------------------------
+    # C. CHEQUE BOUNCE (SECTION 138 NI ACT) FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "cheque_bounce":
+        if re.search(r"\b(which court|where to file|jurisdiction)\b", q_lower):
+            text = (
+                f"### 🏛️ Jurisdictional Court for Section 138 Cheque Bounce\n\n"
+                f"Under **Section 142(2) of the Negotiable Instruments Act, 1881** (as amended):\n\n"
+                f"1. **Where Cheque Delivered for Collection through Bank Account**:\n"
+                f"   - The complaint can be instituted **ONLY before the Court of the Judicial Magistrate / Metropolitan Magistrate** within whose local jurisdiction the **branch of the bank where the payee maintains the account is situated**.\n"
+                f"   - This gives immense procedural convenience to the complainant (creditor), as you file the case in the court having jurisdiction over your own bank branch.\n\n"
+                f"2. **Strict 30-Day Window**:\n"
+                f"   - Complaint must be filed within **30 days** from the expiry of the 15-day notice period."
+            )
+            citations = [
+                "[Statute] Negotiable Instruments Act, 1881 - Section 142(2) (Territorial Jurisdiction)",
+                "[Landmark Precedent] Dashrath Rupsingh Rathod v. State of Maharashtra (2014) & 2015 NI Act Amendment",
+            ]
+            return text, citations
+
+    return None
+
+
+# ==============================================================================
 # Core Routing Engine (/api/chat)
 # ==============================================================================
 
@@ -1323,6 +1653,26 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
             confidence_score=1.0,
             citations=harm_citations,
         )
+
+    # --------------------------------------------------------------------------
+    # Step 0-Memory: Multi-Turn Conversational Follow-Up Resolver
+    # --------------------------------------------------------------------------
+    followup_res = handle_conversational_followup(query=query, history=history, role=role)
+    if followup_res:
+        followup_text, followup_citations = followup_res
+        logger.info(f"[ROUTER] Resolved multi-turn conversational follow-up for '{query}'.")
+        return ChatResponse(
+            text=followup_text,
+            source="local_rag",
+            confidence_score=1.0,
+            citations=followup_citations,
+        )
+
+    # Contextualize query with conversation history if user asks a general follow-up
+    if history and is_followup_query(query, history):
+        reformulated = reformulate_query_with_history(query, history)
+        logger.info(f"[ROUTER] Contextualized query with conversation history: '{query}' -> '{reformulated}'")
+        query = reformulated
 
     # --------------------------------------------------------------------------
     # Step 0A: System Architecture, Data Origin, & Privacy Inquiries

@@ -506,6 +506,72 @@ SCENARIO_CONFIGS: List[Dict[str, Any]] = [
         ],
         "canonical_expansion": "Section 96 100 103 IPC Section 34 38 41 BNS Right of Private Defence imminent peril Darshan Singh v State of Punjab",
     },
+
+    # 11. Disputed Inheritance & Conflicting Wills (Indian Succession Act, 1925)
+    {
+        "domain": "conflicting_wills_inheritance_probate",
+        "title": "Disputed Inheritance & Conflicting Wills (Indian Succession Act, 1925)",
+        "triggers": [
+            r"\b(will|wills|testament|testamentary|codicil|probate)\b",
+            r"\b(conflicting wills|two wills|multiple wills|fake will|forged will|genuine will|later will|earlier will|second will|first will|registered will)\b",
+            r"\b(grandfather|father|mother|grandmother|testator|deceased|passed away|died|demise|death)\b",
+            r"\b(inheritance|inherit|inherited|property|ancestral|estate|bequeath|bequeathed|succession|share)\b",
+        ],
+        "min_trigger_matches": 2,
+        "who_is_right": (
+            "**The Propounder of the Subsequent (Later) Validly Executed Will has the primary legal claim, subject to strict judicial scrutiny:**\n\n"
+            "1. **Rule of Later Will (The Last Will Prevails in Law)**: Under **Section 62 of the Indian Succession Act, 1925**, a Will is revocable by the testator at any point during their lifetime. Therefore, where two conflicting wills are presented, the **subsequent (later) valid Will operates as a statutory revocation of all prior inconsistent wills** (*'Voluntas posterior derogat priori'*).\n"
+            "2. **Mandatory Burden of Proof & Dispelling Suspicious Circumstances**: Under the landmark Constitution Bench ruling in ***H. Venkatachala Iyengar v. B.N. Thimmajamma (AIR 1959 SC 443)***, the person who propounds the later Will bears the strict legal burden of proving: (a) valid execution and attestation by at least two witnesses under Section 63, (b) sound disposing state of mind and testamentary capacity of your grandfather, and (c) satisfactorily dispelling all suspicious circumstances (e.g., unnatural disposition, exclusion of natural heirs, or active involvement of a beneficiary in drafting/registering the Will).\n"
+            "3. **What Happens if the Later Will is Forged or Invalidated**: If the probate court finds the subsequent Will forged, fabricated, or executed under coercion/undue influence, the earlier genuine Will remains legally binding. If both wills fail or are declared void, your grandfather's estate devolves by statutory **Intestate Succession** under Section 8 of the Hindu Succession Act, 1956 among all Class-I legal heirs in equal shares."
+        ),
+        "supporting_sections": [
+            "**Section 62 Indian Succession Act, 1925**: Revocability of Will — A Will is liable to be revoked or altered by the maker at any time when competent to dispose of property. A subsequent inconsistent Will operates as an express or implied revocation of prior wills.",
+            "**Section 63(c) Indian Succession Act, 1925**: Mandatory Statutory Execution — The Will must be signed/marked by the testator and attested by at least TWO witnesses, each of whom must have seen the testator sign and must sign the will in the presence of the testator.",
+            "**Section 276 & 218 Indian Succession Act, 1925**: Petition for Probate (by Executor) or Letters of Administration with Will Annexed (by legal heir/beneficiary) before the District Judge / High Court exercising Original Testamentary Jurisdiction.",
+            "**Section 284 Indian Succession Act & Section 148A CPC (Caveat)**: Statutory right of any interested legal heir to lodge a Caveat before the probate court to ensure no ex-parte probate or letters of administration can be issued without prior formal notice to them.",
+            "**Section 68 Bharatiya Sakshya Adhiniyam, 2023 (BSA) / Section 68 Indian Evidence Act**: Mandatory Evidentiary Proof — A Will cannot be received in evidence until at least ONE attesting witness has been called to prove its execution, if alive and capable of giving evidence.",
+            "**Section 69 Bharatiya Sakshya Adhiniyam, 2023 (BSA) / Section 69 IEA**: Proof when both attesting witnesses are dead or untraceable — The Will is proved by establishing the genuine handwriting and signature of at least one attesting witness and the testator.",
+            "**Section 247 Indian Succession Act, 1925**: Appointment of Administrator *Pendente Lite* — Power of the court to appoint an independent administrator/receiver to manage, collect rents, and prevent waste or alienation of the estate while the probate suit is contested.",
+            "**Order XXXIX Rules 1 & 2 CPC / Section 151 CPC**: Urgent application for Temporary Injunction restraining any family member, uncle, or claimant from selling, transferring, leasing, mortgaging, or mutating the inheritance properties pending court adjudication.",
+            "**Section 52 Transfer of Property Act, 1882 (Doctrine of Lis Pendens)**: Any transfer or sale of estate property during pending court proceedings is strictly subservient to the final decree of the court.",
+            "**Section 8 Hindu Succession Act, 1956**: Default rules of intestate succession for male Hindu dying without a valid will — all Class-I heirs (sons, daughters, widow, mother) take per capita equal shares.",
+        ],
+        "evidence_required": [
+            "Originals of both conflicting Wills (or certified registration copies if registered at the Sub-Registrar office).",
+            "Official Death Certificate of your grandfather issued by the Municipal Corporation / Registrar of Births & Deaths.",
+            "Legal Heir Certificate or Family Genealogy Tree Certificate issued by the Tahsildar / Revenue Authority.",
+            "Affidavits and sworn court testimonies of the two attesting witnesses who signed the genuine Will.",
+            "Medical records, doctor's prescriptions, or mental fitness certificate of the grandfather around the date of execution proving sound disposing state of mind.",
+            "Schedule of all movable and immovable estate properties (registered title deeds, Khata/Patta, bank accounts, FD receipts).",
+        ],
+        "action_plan_advocate": (
+            "1. **File Urgent Caveat (Section 148A CPC / Section 284 Indian Succession Act)**: Immediately lodge a caveat in the District Court / High Court testamentary division to ensure no ex-parte grant of probate or letters of administration can be obtained by the rival party.\n"
+            "2. **Petition for Probate / Letters of Administration (Section 276 Indian Succession Act)**: File a formal probate petition with the original Will annexed before the District Judge. When the rival party enters a caveat, the proceeding is automatically numbered and tried as a **Contested Testamentary Suit** under the Code of Civil Procedure.\n"
+            "3. **Urgent Injunction & Administrator Pendente Lite (Order 39 CPC & Section 247 ISA)**: File an interim application restraining all parties from alienating, selling, or creating third-party rights on the estate, or pray for appointment of an Administrator *pendente lite* under Section 247 to collect rents and protect properties.\n"
+            "4. **Dispel Suspicious Circumstances (Venkatachala Iyengar Doctrine)**: Prepare examination-in-chief of attesting witnesses and handwriting forensic expert to conclusively prove signature, voluntariness, and sound mental capacity of grandfather."
+        ),
+        "action_plan_client": (
+            "1. **Do NOT Hand Over Original Will**: Keep the original Will, death certificate, and title deeds in a secure bank locker; only submit them directly to the Court through your advocate.\n"
+            "2. **Locate the Attesting Witnesses Immediately**: Contact the two witnesses who signed the Will. Their sworn affidavit and court testimony are mandatory under Section 68 of the Evidence Act / BSA.\n"
+            "3. **Stop Any Property Sale or Mutation**: Send a formal legal alert letter to the local Sub-Registrar and Revenue Tehsildar notifying them of the disputed wills and pending litigation so no property mutation or sale can take place.\n"
+            "4. **Collect Medical Records**: If grandfather was elderly, obtain prescriptions or fitness slips from his treating doctor from the time the Will was made to defeat any claim of unsound mind or incapacity."
+        ),
+        "landmarks": [
+            "***H. Venkatachala Iyengar v. B.N. Thimmajamma* (AIR 1959 SC 443 - Constitution Bench)**: Supreme Court Magna Carta on Wills: Propounder must prove due execution, attestation by 2 witnesses, testamentary capacity, and eliminate all suspicious circumstances.",
+            "***Jaswant Kaur v. Amrit Kaur* ((1977) 1 SCC 369 - Supreme Court)**: Reaffirmed that the presence of suspicious circumstances shifts the entire burden onto the person propounding the will to satisfactorily explain them before probate can be granted.",
+            "***Kavita Kanwar v. Pamela Mehta* ((2021) 11 SCC 209 - Supreme Court)**: Held that where a major beneficiary plays an active and leading part in the execution of the will which excludes other natural heirs, it constitutes a grave suspicious circumstance requiring conclusive proof.",
+            "***Murthy v. C. Saradambal* ((2022) 3 SCC 209 - Supreme Court)**: Re-emphasized that registration of a Will does not dispense with the mandatory requirement of proving execution and attestation under Section 68 of the Evidence Act.",
+        ],
+        "citations": [
+            "[Local ChromaDB] backend/data/property_land_and_civil_disputes_scenarios.pdf (Testamentary Succession & Disputed Will Scenario)",
+            "[Statute] The Indian Succession Act, 1925 - Section 62 (Revocation of Will), Section 63 (Execution), Section 276 (Probate)",
+            "[Statute] Bharatiya Sakshya Adhiniyam, 2023 - Section 68 & 69 (Mandatory Proof of Execution by Attesting Witness)",
+            "[Landmark Precedent] H. Venkatachala Iyengar v. B.N. Thimmajamma, AIR 1959 SC 443 (Constitution Bench)",
+            "[Landmark Precedent] Jaswant Kaur v. Amrit Kaur (1977) 1 SCC 369 & Kavita Kanwar v. Pamela Mehta (2021) 11 SCC 209",
+            "[Procedural Law] Code of Civil Procedure, 1908 - Section 148A (Caveat) & Order XXXIX Rules 1-2 (Injunction)",
+        ],
+        "canonical_expansion": "Section 62 Indian Succession Act revocation later will Section 63 execution attestation Section 276 probate letters of administration Section 68 BSA evidence attesting witness H Venkatachala Iyengar suspicious circumstances Order 39 CPC injunction",
+    },
 ]
 
 
@@ -520,6 +586,8 @@ def match_story_scenario(query: str) -> Optional[Dict[str, Any]]:
     narrative_cues = [
         "my husband", "my wife", "my in-laws", "my father", "my brother", "my sister",
         "my son", "my daughter", "my neighbor", "my tenant", "my landlord", "my friend",
+        "grandfather", "grandmother", "my grandfather", "my grandmother", "passed away", "died",
+        "two wills", "conflicting wills", "will", "wills", "probate", "inheritance",
         "bought land", "ancestral property", "cheated me", "bounced", "took loan",
         "family issue", "family dispute", "who is right", "who is correct", "which section supports",
         "what can i do", "what should i do", "is it legal", "what are my rights",
