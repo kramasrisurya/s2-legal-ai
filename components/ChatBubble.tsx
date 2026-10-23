@@ -120,24 +120,42 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
         }`}
       >
         {/* Stream / Origin Header */}
-        <div className={`absolute -top-7 ${isUser ? 'right-4' : 'left-4'} flex items-center gap-2`}>
+        <div className={`absolute -top-7 ${isUser ? 'right-4' : 'left-4'} flex items-center gap-2 flex-wrap`}>
           <div className={`w-2 h-2 rounded-full ${isUser ? 'bg-fuchsia-400' : 'bg-cyan-400 animate-pulse'}`}></div>
           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
             {isUser ? 'Petitioner Entry' : 'S2 AI Agent Stream'}
           </span>
+          {!isUser && message.source === 'local_rag' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 shadow-sm">
+              <svg className="w-3 h-3 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" strokeWidth="2.5" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeWidth="2.5" strokeLinecap="round" />
+              </svg>
+              <span>Local RAG (Verified Context)</span>
+            </span>
+          )}
+          {!isUser && message.source === 'gemini_fallback' && (
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-950/50 text-blue-400 border border-blue-500/30 shadow-sm">
+              <svg className="w-3 h-3 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" strokeWidth="2.2" />
+                <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" strokeWidth="2.2" />
+              </svg>
+              <span>Cloud Agent (Search Grounded)</span>
+            </span>
+          )}
         </div>
 
-        {/* Trust & Verification Badge for AI Messages */}
+        {/* Prominent Trust & Verification Status Bar */}
         {!isUser && (
           <div className="mb-5 flex flex-wrap items-center gap-2.5">
             {message.source === 'local_rag' && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/90 text-emerald-300 border border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-950/50 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.15)]">
                 {/* Lock Icon */}
                 <svg className="w-3.5 h-3.5 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2" strokeWidth="2.5" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" strokeWidth="2.5" strokeLinecap="round" />
                 </svg>
-                <span>Local RAG (Constitutional Database)</span>
+                <span>Local RAG (Verified Context)</span>
                 {typeof message.confidenceScore === 'number' && (
                   <span className="ml-1 px-1.5 py-0.5 rounded-md bg-emerald-900/60 text-emerald-200 text-[10px] font-mono">
                     {(message.confidenceScore * 100).toFixed(0)}% Match
@@ -147,19 +165,15 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
             )}
 
             {message.source === 'gemini_fallback' && (
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-950/90 text-sky-300 border border-sky-500/40 shadow-[0_0_15px_rgba(56,189,248,0.2)]">
-                {/* Cloud Icon */}
-                <svg className="w-3.5 h-3.5 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-blue-950/50 text-blue-400 border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                {/* Globe Icon */}
+                <svg className="w-3.5 h-3.5 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" strokeWidth="2.2" />
+                  <path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" strokeWidth="2.2" />
                 </svg>
-                <span>Cloud API (Web Grounded)</span>
+                <span>Cloud Agent (Search Grounded)</span>
                 {typeof message.confidenceScore === 'number' && (
-                  <span className="ml-1 px-1.5 py-0.5 rounded-md bg-sky-900/60 text-sky-200 text-[10px] font-mono">
+                  <span className="ml-1 px-1.5 py-0.5 rounded-md bg-blue-900/60 text-blue-200 text-[10px] font-mono">
                     {(message.confidenceScore * 100).toFixed(0)}% Score
                   </span>
                 )}
@@ -179,7 +193,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
           {isUser ? <p className="whitespace-pre-wrap">{message.content}</p> : renderFormattedContent(message.content)}
         </div>
 
-        {/* Source Citations Collapsible Accordion (for verifiable AI) */}
+        {/* View Source Documents Collapsible Accordion (for verifiable AI) */}
         {!isUser && message.citations && message.citations.length > 0 && (
           <div className="mt-6 pt-4 border-t border-white/10">
             <button
@@ -196,7 +210,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
                   />
                 </svg>
                 <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                  Source Citations
+                  View Source Documents
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-black border border-cyan-500/30">
                   {message.citations.length}
@@ -204,7 +218,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
               </div>
 
               <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 group-hover:text-cyan-300">
-                <span>{showCitations ? 'Collapse' : 'Verify Sources'}</span>
+                <span>{showCitations ? 'Collapse' : 'Expand Documents'}</span>
                 <svg
                   className={`w-3.5 h-3.5 transition-transform duration-200 ${showCitations ? 'rotate-180' : ''}`}
                   fill="none"
@@ -217,43 +231,15 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
             </button>
 
             {showCitations && (
-              <div className="mt-3 space-y-2 max-h-64 overflow-y-auto pr-1">
-                {message.citations.map((citation, cIdx) => {
-                  const urlMatch = citation.match(/(https?:\/\/[^\s]+)/);
-                  const url = urlMatch ? urlMatch[0] : null;
-
-                  return (
-                    <div
-                      key={cIdx}
-                      className="p-3 rounded-xl bg-slate-950/90 border border-slate-800 text-xs text-slate-300 leading-relaxed font-mono"
-                    >
-                      <div className="flex items-start gap-2.5">
-                        <span className="text-cyan-400 font-bold shrink-0">[{cIdx + 1}]</span>
-                        <div className="flex-1 overflow-hidden break-words">
-                          <p>{citation}</p>
-                          {url && (
-                            <a
-                              href={url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 mt-1.5 text-cyan-400 hover:text-cyan-300 underline text-[11px]"
-                            >
-                              <span>Inspect Grounded Source</span>
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                />
-                              </svg>
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="mt-3 space-y-2.5 max-h-72 overflow-y-auto pr-1">
+                {message.citations.map((citation, cIdx) => (
+                  <pre
+                    key={cIdx}
+                    className="whitespace-pre-wrap bg-slate-900 border border-slate-700 text-slate-300 text-xs font-mono p-3.5 rounded-lg leading-relaxed overflow-x-auto shadow-inner"
+                  >
+                    {citation}
+                  </pre>
+                ))}
               </div>
             )}
           </div>

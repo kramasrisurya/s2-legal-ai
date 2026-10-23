@@ -59,7 +59,7 @@ logger = logging.getLogger("AGENTIC_ROUTER")
 SIMILARITY_THRESHOLD: float = float(os.getenv("SIMILARITY_THRESHOLD", "0.75"))
 BASE_DIR: Path = Path(__file__).resolve().parent
 DB_DIR: Path = BASE_DIR / "db" / "chroma_data"
-COLLECTION_NAME: str = "indian_constitution"
+COLLECTION_NAME: str = "indian_legal_corpus"
 EMBEDDING_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"
 
 OLLAMA_BASE_URL: str = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/")
@@ -692,13 +692,13 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
             f"Executing LOCAL_RAG with {ollama_client.model}..."
         )
 
+        # Format citations to include source, score, and complete statutory chunk text
         for idx, (doc, sim) in enumerate(retrieved, start=1):
             src = doc.metadata.get("source_file", "Constitution")
             page = doc.metadata.get("page", 1)
-            content_preview = doc.page_content.strip()
-            header = content_preview.split("\n")[0][:65]
+            content_text = doc.page_content.strip()
             citations.append(
-                f"[{src} | Page {page} | Score: {sim:.2f}] {header} - {content_preview[:220]}..."
+                f"[{src} | Page {page} | Similarity: {sim:.2f}]\n{content_text}"
             )
 
         system_prompt, user_prompt = build_local_constitutional_prompt(
@@ -713,14 +713,26 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
                     prompt=user_prompt, system=system_prompt
                 )
             else:
+                raise RuntimeError(f"Ollama server is offline at {ollama_client.base_url}")
+        except Exception as ollama_err:
+            logger.warning(
+                f"[ROUTER] Local Ollama unavailable or threw error: {ollama_err}. "
+                "Initiating immediate failover to Gemini fallback protocol..."
+            )
+            try:
+                generated_text, fallback_cits = await gemini_service.generate_with_search(
+                    query=query, history=history, role=role
+                )
+                chosen_source = "gemini_fallback"
+                citations = []  # Empty citations for gemini fallback as per specification
+                inference_engine = f"Failover: Google Gemini ({GEMINI_MODEL}) + Search Grounding"
+            except Exception as gem_fail_err:
                 logger.info(
-                    f"[ROUTER] Ollama daemon offline at {ollama_client.base_url}. "
-                    "Constructing structured constitutional synthesis from retrieved vector index..."
+                    f"[ROUTER] Gemini API notice ({gem_fail_err}). "
+                    "Constructing structured constitutional synthesis from retrieved local index..."
                 )
                 generated_text = synthesize_local_rag_answer(query=query, retrieved=retrieved, role=role)
-        except Exception as ollama_err:
-            logger.error(f"[ROUTER] Ollama execution notice: {ollama_err}")
-            generated_text = synthesize_local_rag_answer(query=query, retrieved=retrieved, role=role)
+                inference_engine = "Local Vector RAG Synthesis (ChromaDB)"
 
     # --------------------------------------------------------------------------
     # Step 4: Real-Time Online Search Fallback (Secondary)
@@ -732,21 +744,21 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
             f"Query out-of-domain for Constitution. Triggering LIVE ONLINE SEARCH..."
         )
 
-        # Attempt 1: Gemini 2.5 Flash with Google Search Grounding if configured
+        citations = []  # Empty citations for gemini fallback as specified in Phase 2
         gemini_success = False
         if os.getenv("GEMINI_API_KEY") and not os.getenv("GEMINI_API_KEY", "").startswith("PLACEHOLDER"):
             try:
-                generated_text, citations = await gemini_service.generate_with_search(
+                generated_text, _ = await gemini_service.generate_with_search(
                     query=query, history=history, role=role
                 )
                 inference_engine = f"Google Gemini ({GEMINI_MODEL}) + Google Search"
                 gemini_success = True
             except Exception as gem_err:
-                logger.warning(f"[ROUTER] Gemini API call unsuccessful: {gem_err}. Proceeding to Live Web Search...")
+                logger.warning(f"[ROUTER] Gemini API call notice: {gem_err}. Proceeding to Live Web Search...")
 
-        # Attempt 2: Live Web Search via DuckDuckGo and Wikipedia
+        # Secondary search via DuckDuckGo and Wikipedia
         if not gemini_success:
-            web_snippets, citations = await online_search_service.execute_online_search(query)
+            web_snippets, web_cits = await online_search_service.execute_online_search(query)
             generated_text = synthesize_online_search_answer(query, web_snippets, role)
 
     # --------------------------------------------------------------------------

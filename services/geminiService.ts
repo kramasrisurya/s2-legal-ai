@@ -22,8 +22,8 @@ export class LegalAIService {
     attachments: FileAttachment[] = []
   ): Promise<AnalyzeQueryResponse> {
     const controller = new AbortController();
-    // 35-second client-side timeout to allow for local model inference
-    const timeoutId = setTimeout(() => controller.abort(), 35000);
+    // 15-second client-side timeout controller as specified in Phase 3
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
     try {
       const response = await fetch(this.apiUrl, {

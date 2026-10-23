@@ -43,7 +43,7 @@ logger = logging.getLogger("INGEST_PIPELINE")
 BASE_DIR: Path = Path(__file__).resolve().parent
 DATA_DIR: Path = BASE_DIR / "data"
 DB_DIR: Path = BASE_DIR / "db" / "chroma_data"
-COLLECTION_NAME: str = "indian_constitution"
+COLLECTION_NAME: str = "indian_legal_corpus"
 EMBEDDING_MODEL_NAME: str = "BAAI/bge-small-en-v1.5"
 
 CHUNK_SIZE: int = 1000
@@ -181,17 +181,22 @@ def run_ingestion() -> None:
         embeddings = initialize_embeddings(EMBEDDING_MODEL_NAME)
 
         # Step 4: Persist into ChromaDB
-        store_in_chromadb(
+        vector_store = store_in_chromadb(
             chunks=chunks,
             embeddings=embeddings,
             db_path=DB_DIR,
             collection_name=COLLECTION_NAME,
         )
 
+        total_persisted = vector_store._collection.count()
+
         print("\n" + "=" * 70)
-        print("  INGESTION PIPELINE COMPLETED SUCCESSFULLY")
-        print(f"  Vector Store Path: {DB_DIR}")
-        print(f"  Collection Name:   {COLLECTION_NAME}")
+        print("  [RESEARCH TELEMETRY] INGESTION COMPLETED SUCCESSFULLY")
+        print(f"  Total Statutory Pages Processed : {len(documents)}")
+        print(f"  Total Vector Chunks Generated   : {len(chunks)}")
+        print(f"  Total Chunks Persisted in DB    : {total_persisted}")
+        print(f"  Target Collection Name          : {COLLECTION_NAME}")
+        print(f"  Persistent Vector Store Path    : {DB_DIR}")
         print("=" * 70 + "\n")
 
     except Exception as exc:
