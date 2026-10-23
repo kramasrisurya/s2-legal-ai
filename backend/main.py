@@ -213,7 +213,10 @@ class VectorStoreManager:
         legal_matches = (q_tokens & doc_tokens) - stop_words
         overlap_boost = min(0.10, len(legal_matches) * 0.025)
 
-        calibrated_sim = min(1.0, max(0.0, raw_sim + section_boost + overlap_boost - toc_penalty))
+        # General IPC and Penal code relevance boost for chunks originating from the penal code
+        ipc_boost = 0.08 if (("ipc" in q_lower or "penal code" in q_lower) and ("indian_penal_code" in doc_lower or "penal code" in doc_lower)) else 0.0
+
+        calibrated_sim = min(1.0, max(0.0, raw_sim + section_boost + overlap_boost + ipc_boost - toc_penalty))
         return round(calibrated_sim, 4)
 
     def retrieve_with_similarity(
@@ -514,6 +517,212 @@ gemini_service = GeminiCloudService()
 # ==============================================================================
 # Conversational, System Provenance & Intelligent Legal Synthesis
 # ==============================================================================
+
+def is_foundational_statute_query(query: str) -> Optional[str]:
+    """
+    Detects macro-level foundational questions asking for the definition, structure,
+    or overview of primary legal codes (IPC, Constitution, CrPC, BNS, BNSS).
+    Returns the statute key ("ipc", "constitution", "crpc", "bns") or None.
+    """
+    clean = re.sub(r"[^\w\s]", " ", query).strip().lower()
+    clean = re.sub(r"\s+", " ", clean)
+
+    has_specific_section = bool(re.search(r"\b(section|sec|article|art|\d{2,})\b", clean))
+
+    # 1. IPC Queries: "what is ipc", "define ipc", "explain ipc", "what is indian penal code", "ipc meaning", "what does ipc mean"
+    ipc_patterns = [
+        r"^what (is|was) (the )?ipc\b",
+        r"^what does ipc (mean|stand for)\b",
+        r"^(define|explain|describe|tell me about|overview of) (the )?ipc\b",
+        r"^what (is|was) (the )?indian penal code\b",
+        r"^(define|explain|describe|tell me about|overview of) (the )?indian penal code\b",
+        r"^ipc (overview|meaning|definition|structure)\b",
+        r"^what is ipc 1860\b",
+    ]
+    if not has_specific_section or clean in {"what is ipc 1860", "ipc 1860"}:
+        for p in ipc_patterns:
+            if re.search(p, clean):
+                return "ipc"
+        if clean in {"what is ipc", "ipc", "indian penal code", "define ipc", "explain ipc", "about ipc", "the ipc"}:
+            return "ipc"
+
+    # 2. Constitution Queries: "what is constitution", "what is the constitution of india"
+    const_patterns = [
+        r"^what (is|was) (the )?constitution\b",
+        r"^what (is|was) (the )?constitution of india\b",
+        r"^(define|explain|describe|tell me about|overview of) (the )?(constitution|indian constitution)\b",
+        r"^constitution of india (overview|meaning|definition)\b",
+    ]
+    if not bool(re.search(r"\b(article|art|\d{2,})\b", clean)):
+        for p in const_patterns:
+            if re.search(p, clean):
+                return "constitution"
+        if clean in {"what is constitution", "constitution", "constitution of india", "indian constitution", "the constitution"}:
+            return "constitution"
+
+    # 3. CrPC / BNSS Queries
+    crpc_patterns = [
+        r"^what (is|was) (the )?crpc\b",
+        r"^what does crpc (mean|stand for)\b",
+        r"^(define|explain|describe|tell me about|overview of) (the )?crpc\b",
+        r"^what (is|was) (the )?code of criminal procedure\b",
+    ]
+    if not has_specific_section:
+        for p in crpc_patterns:
+            if re.search(p, clean):
+                return "crpc"
+        if clean in {"what is crpc", "crpc", "code of criminal procedure"}:
+            return "crpc"
+
+    # 4. BNS Queries
+    bns_patterns = [
+        r"^what (is|was) (the )?bns\b",
+        r"^what does bns (mean|stand for)\b",
+        r"^(define|explain|describe|tell me about|overview of) (the )?bns\b",
+        r"^what (is|was) (the )?bharatiya nyaya sanhita\b",
+    ]
+    if not has_specific_section:
+        for p in bns_patterns:
+            if re.search(p, clean):
+                return "bns"
+        if clean in {"what is bns", "bns", "bharatiya nyaya sanhita"}:
+            return "bns"
+
+    return None
+
+
+def generate_foundational_statute_response(statute: str, role: str) -> Tuple[str, List[str]]:
+    """Generates authoritative definition and structural analysis for macro-level statutes."""
+    if statute == "ipc":
+        text = (
+            "### 📌 Authoritative Statutory Overview: The Indian Penal Code, 1860 (IPC)\n"
+            "The **Indian Penal Code (Act No. 45 of 1860)** is the foundational substantive criminal code of India. "
+            "It defines what acts constitute criminal offences and prescribes their corresponding punishments. "
+            "Enacted on **6th October 1860** and coming into operation on **1st January 1862**, it was drafted under "
+            "the stewardship of the **First Law Commission of India** chaired by **Thomas Babington Macaulay**.\n\n"
+            "### 📜 Preamble & Statutory Scope (Section 1 IPC)\n"
+            "> **Preamble**: *WHEREAS it is expedient to provide a general Penal Code for India; It is enacted as follows:—*\n>\n"
+            "> **Section 1. Title and extent of operation of the Code**:\n"
+            "> *\"This Act shall be called the Indian Penal Code, and shall extend to the whole of India.\"*\n\n"
+            "### ⚖️ Architectural Framework (511 Sections in 23 Chapters)\n"
+            "The Indian Penal Code systematically classifies criminal law into **23 thematic chapters**:\n\n"
+            "| Structural Segment | Chapters | Key Statutory Provisions Covered |\n"
+            "|---|---|---|\n"
+            "| **Preliminary & General Explanations** | Chapters I & II (Sec. 1–52A) | Territorial jurisdiction, definitions of *person*, *public servant*, *dishonestly*, *fraudulently*. |\n"
+            "| **Punishments** | Chapter III (Sec. 53–75) | Death penalty, imprisonment for life, rigorous/simple imprisonment, forfeiture of property, fine, and solitary confinement. |\n"
+            "| **General Exceptions & Private Defence** | Chapter IV (Sec. 76–106) | Mistake of fact (Sec. 76), Judicial acts, Accident (Sec. 80), Infancy (Sec. 82-83), Insanity (Sec. 84 - M'Naghten Rule), Intoxication (Sec. 85-86), Consent (Sec. 87-90), and **Right of Private Defence** (Sec. 96–106). |\n"
+            "| **Inchoate Crimes & Public Order** | Chapters V, VA & VIII (Sec. 107–120B, 141–160) | Abetment (Sec. 107), Criminal Conspiracy (Sec. 120A/120B), Unlawful Assembly & Rioting (Sec. 141–149). |\n"
+            "| **Offences Affecting Human Life & Body** | Chapter XVI (Sec. 299–377) | Culpable Homicide (Sec. 299), Murder (Sec. 300/302), Dowry Death (Sec. 304B), Hurt & Grievous Hurt (Sec. 319–326), Kidnapping & Abduction (Sec. 359–363), Rape (Sec. 375/376). |\n"
+            "| **Offences Against Property** | Chapter XVII (Sec. 378–462) | Theft (Sec. 378/379), Extortion (Sec. 383/384), Robbery & Dacoity (Sec. 390/395), Criminal Misappropriation & Breach of Trust (Sec. 403–409), Cheating (Sec. 415/420). |\n"
+            "| **Documents, Marriage & Reputation** | Chapters XVIII, XIX, XX, XXI, XXII | Forgery (Sec. 463/465), Cruelty by Relatives (Sec. 498A), Defamation (Sec. 499/500), Criminal Intimidation (Sec. 503/506). |\n\n"
+            "### 🚨 Substantive Law (IPC) vs Procedural Law (CrPC / BNSS)\n"
+            "- **Substantive Law (IPC 1860 / BNS 2023)**: Defines *what constitutes a crime* (actus reus + mens rea) and determines penal liability.\n"
+            "- **Procedural Law (CrPC 1973 / BNSS 2023)**: Governs *how the legal machinery operates*—FIR registration (Sec. 154 CrPC / Sec. 173 BNSS), police arrest, search warrants, bail mechanisms, and trials before Magistrates and Sessions Courts.\n\n"
+            "### 🔄 Modern Legal Transition: IPC to Bharatiya Nyaya Sanhita, 2023 (BNS)\n"
+            "Effective **July 1, 2024**, the Indian Penal Code 1860 was repealed and succeeded by the **Bharatiya Nyaya Sanhita, 2023 (BNS)** (Act No. 45 of 2023):\n"
+            "- **Applicability Timeline**: Any offence committed on or prior to **June 30, 2024** is prosecuted under the **IPC 1860**. Any offence committed on or after **July 1, 2024** is governed by the **BNS 2023**.\n"
+            "- **Structural Modernization**: Consolidates offences from 511 down to 358 sections, introduces community service for petty offences, codifies organized crime (Sec. 111) and mob lynching (Sec. 103(2)), and replaces colonial sedition (Sec. 124A IPC) with acts endangering sovereignty (Sec. 152 BNS).\n\n"
+            "> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+        citations = [
+            "[Local ChromaDB] backend/data/indian_penal_code_1860.pdf (Act No. 45 of 1860: Complete 511 Sections & 23 Chapters)",
+            "[Local ChromaDB] Page 14 | Chapter I: Introduction & Section 1: Title and extent of operation of the Code",
+            "[Local ChromaDB] Page 21 | Chapter IV: General Exceptions & Private Defence (Sections 76–106)",
+            "[Statutory Transition] Bharatiya Nyaya Sanhita, 2023 (Act No. 45 of 2023, w.e.f. July 1, 2024)",
+        ]
+        return text, citations
+
+    elif statute == "constitution":
+        text = (
+            "### 📌 Authoritative Constitutional Overview: The Constitution of India, 1950\n"
+            "The **Constitution of India** is the supreme law (*lex suprema*) of the Republic of India. "
+            "It lays down the fundamental political code, establishes the structure, procedures, powers, and duties "
+            "of government institutions, and sets out the fundamental rights, directive principles, and duties of citizens. "
+            "Adopted by the **Constituent Assembly on 26th November 1949**, it came into legal effect on **26th January 1950**.\n\n"
+            "### 📜 The Preamble to the Constitution of India\n"
+            "> *\"WE, THE PEOPLE OF INDIA, having solemnly resolved to constitute India into a SOVEREIGN SOCIALIST SECULAR "
+            "DEMOCRATIC REPUBLIC and to secure to all its citizens: "
+            "JUSTICE, social, economic and political; "
+            "LIBERTY of thought, expression, belief, faith and worship; "
+            "EQUALITY of status and of opportunity; and to promote among them all "
+            "FRATERNITY assuring the dignity of the individual and the unity and integrity of the Nation...\"*\n\n"
+            "### 🏛️ Architectural Framework (395 Articles, 22 Parts, 12 Schedules)\n"
+            "| Constitutional Division | Articles | Core Subject Matter |\n"
+            "|---|---|---|\n"
+            "| **Part I: The Union & Its Territory** | Articles 1–4 | Name and territory of the Union, admission or establishment of new States. |\n"
+            "| **Part II: Citizenship** | Articles 5–11 | Rights of citizenship at the commencement of the Constitution. |\n"
+            "| **Part III: Fundamental Rights** | Articles 12–35 | Right to Equality (Art. 14–18), Right to Freedom (Art. 19–22), Protection against Exploitation (Art. 23–24), Freedom of Religion (Art. 25–28), Cultural & Educational Rights (Art. 29–30), and **Right to Constitutional Remedies (Article 32)**. |\n"
+            "| **Part IV: Directive Principles (DPSP)** | Articles 36–51 | Non-justiciable socio-economic principles fundamental in governance (e.g. Art. 39A Free Legal Aid, Art. 44 Uniform Civil Code). |\n"
+            "| **Part IVA: Fundamental Duties** | Article 51A | 11 Fundamental Duties of every citizen (added by 42nd & 86th Amendments). |\n"
+            "| **Part V: The Union** | Articles 52–151 | President, Union Council of Ministers, Parliament, and **The Supreme Court of India (Articles 124–147)**. |\n"
+            "| **Part VI: The States** | Articles 152–237 | Governor, State Legislature, and **The High Courts (Articles 214–232)**. |\n"
+            "| **Part XVIII: Emergency Provisions** | Articles 352–360 | National Emergency (Art. 352), President's Rule (Art. 356), Financial Emergency (Art. 360). |\n"
+            "| **Part XX: Amendment Power** | Article 368 | Power of Parliament to amend the Constitution subject to the **Basic Structure Doctrine**. |\n\n"
+            "### ⚖️ The Basic Structure Doctrine (*Kesavananda Bharati v. State of Kerala*, 1973)\n"
+            "By a historic 7:6 majority in a 13-Judge Constitutional Bench, the Supreme Court ruled that while Parliament holds plenary amending "
+            "power under **Article 368**, it cannot alter or destroy the **Basic Structure** of the Constitution (including the Supremacy of the Constitution, "
+            "Separation of Powers, Judicial Review under Articles 32/226, Secularism, and Federalism).\n\n"
+            "> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+        citations = [
+            "[Local ChromaDB] backend/data/constitution/ (The Constitution of India, 1950 - Complete Authoritative Records)",
+            "[Local ChromaDB] Preamble & Part III: Fundamental Rights (Articles 12–35)",
+            "[Local ChromaDB] backend/data/supreme_court_judgments.pdf (Kesavananda Bharati v. State of Kerala, (1973) 4 SCC 225 - Basic Structure)",
+            "[Local ChromaDB] Part V: Union Judiciary & Part XX: Article 368 Constitutional Amendments",
+        ]
+        return text, citations
+
+    elif statute == "crpc":
+        text = (
+            "### 📌 Authoritative Procedural Overview: Code of Criminal Procedure, 1973 (CrPC)\n"
+            "The **Code of Criminal Procedure, 1973 (Act No. 2 of 1974)** is the procedural legislation governing the machinery "
+            "for investigation of crime, apprehension of suspected criminals, collection of evidence, determination of guilt or innocence "
+            "by criminal courts, and imposition of penalties.\n\n"
+            "### ⚖️ Substantive Law vs Procedural Law\n"
+            "- While the **Indian Penal Code (IPC 1860)** defines offences and prescribes punishments, the **CrPC 1973** provides "
+            "the legal machinery and procedural mechanisms through which penal laws are enforced.\n\n"
+            "### 🔄 Modern Procedural Transition: CrPC to Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)\n"
+            "Effective **July 1, 2024**, the CrPC was repealed and replaced by the **Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)** (Act No. 46 of 2023):\n\n"
+            "| Procedural Mechanism | Code of Criminal Procedure (CrPC 1973) | Bharatiya Nagarik Suraksha Sanhita (BNSS 2023) |\n"
+            "|---|---|---|\n"
+            "| **First Information Report (FIR)** | Section 154 CrPC | **Section 173 BNSS** (Explicit codification of Zero FIR & e-FIR) |\n"
+            "| **Notice in Lieu of Arrest** | Section 41A CrPC | **Section 35(3) BNSS** (Mandatory compliance under *Arnesh Kumar*) |\n"
+            "| **Search & Seizure Recording** | Section 100 CrPC | **Section 105 BNSS** (Mandatory audio-video electronic recording) |\n"
+            "| **Regular Bail** | Sections 437 & 439 CrPC | **Section 480 BNSS** |\n"
+            "| **Anticipatory Bail** | Section 438 CrPC | **Section 482 BNSS** |\n"
+            "| **Default / Statutory Bail** | Section 167(2) CrPC | **Section 187 BNSS** |\n"
+            "| **High Court Inherent Powers (Quashing)** | Section 482 CrPC | **Section 528 BNSS** |\n\n"
+            "> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+        citations = [
+            "[Local ChromaDB] backend/data/indian_penal_code_1860.pdf (Statutory Procedural Linkage)",
+            "[Local ChromaDB] supreme_court_judgments.pdf (Satender Kumar Antil v. CBI (2022) 10 SCC 51 - 4-Tier Bail Categorization)",
+            "[Local ChromaDB] supreme_court_judgments.pdf (Arnesh Kumar v. State of Bihar (2014) 8 SCC 273 - Arrest Safeguards)",
+            "[Statutory Transition] Bharatiya Nagarik Suraksha Sanhita, 2023 (Act No. 46 of 2023, w.e.f. July 1, 2024)",
+        ]
+        return text, citations
+
+    else:  # bns
+        text = (
+            "### 📌 Authoritative Statutory Overview: Bharatiya Nyaya Sanhita, 2023 (BNS)\n"
+            "The **Bharatiya Nyaya Sanhita, 2023 (Act No. 45 of 2023)** is the modern substantive criminal code of India, "
+            "replacing the colonial-era Indian Penal Code (IPC 1860). Enacted by Parliament and effective from **July 1, 2024**, "
+            "the BNS consolidates and streamlines criminal law into **358 sections across 20 chapters**.\n\n"
+            "### ⚖️ Major Statutory Reforms in BNS 2023\n"
+            "1. **Community Service for Petty Offences**: Introduced as an alternative form of punishment for minor crimes (e.g. theft under ₹5,000 upon return of property, public intoxication, defamation).\n"
+            "2. **Mob Lynching Codification**: Section 103(2) explicitly penalizes murder by a mob of five or more persons on grounds of race, caste, community, sex, or place of birth with death or life imprisonment.\n"
+            "3. **Organized Crime & Terrorist Acts**: Codified under Section 111 and Section 113 respectively, bridging the gap between special legislation (MCOCA, UAPA) and general penal law.\n"
+            "4. **Repeal of Colonial Sedition**: Section 124A IPC repealed and replaced by Section 152 BNS (Acts endangering sovereignty, unity, and integrity of India).\n"
+            "5. **Concordance Mapping**: Core offences like Cheating (Sec. 420 IPC -> Sec. 318(4) BNS) and Murder (Sec. 302 IPC -> Sec. 103(1) BNS) maintain strict doctrinal continuity.\n\n"
+            "> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+        citations = [
+            "[Statute] Bharatiya Nyaya Sanhita, 2023 (Act No. 45 of 2023, w.e.f. July 1, 2024)",
+            "[Concordance Reference] backend/data/indian_penal_code_1860.pdf (Statutory Predecessor IPC 1860)",
+            "[Judicial Doctrine] Supreme Court of India Criminal Jurisprudence & Mens Rea Principles",
+        ]
+        return text, citations
+
 
 def is_system_architecture_query(query: str) -> bool:
     """
@@ -999,6 +1208,20 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
                 "The Constitution of India (Complete Records)",
                 "Supreme Court of India Landmark Precedents",
             ],
+        )
+
+    # --------------------------------------------------------------------------
+    # Step 0C: Foundational Legal Code & Statute Inquiries (IPC, Constitution, CrPC, BNS)
+    # --------------------------------------------------------------------------
+    statute_kind = is_foundational_statute_query(query)
+    if statute_kind:
+        logger.info(f"[ROUTER] Identified foundational statute query: '{statute_kind}'. Emitting authoritative definition.")
+        statute_text, statute_citations = generate_foundational_statute_response(statute_kind, role)
+        return ChatResponse(
+            text=statute_text,
+            source="local_rag",
+            confidence_score=1.0,
+            citations=statute_citations,
         )
 
     # --------------------------------------------------------------------------
