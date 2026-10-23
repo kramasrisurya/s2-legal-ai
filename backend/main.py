@@ -33,6 +33,8 @@ from langchain_huggingface import HuggingFaceEmbeddings
 import httpx
 from pydantic import BaseModel, Field
 
+from backend.scenario_engine import match_story_scenario, synthesize_story_scenario_response
+
 # Load environment configuration (.env and .env.local)
 load_dotenv()
 load_dotenv(Path(__file__).resolve().parent.parent / ".env.local")
@@ -216,7 +218,10 @@ class VectorStoreManager:
         # General IPC and Penal code relevance boost for chunks originating from the penal code
         ipc_boost = 0.08 if (("ipc" in q_lower or "penal code" in q_lower) and ("indian_penal_code" in doc_lower or "penal code" in doc_lower)) else 0.0
 
-        calibrated_sim = min(1.0, max(0.0, raw_sim + section_boost + overlap_boost + ipc_boost - toc_penalty))
+        # Scenario and practical dispute match boost
+        scenario_boost = 0.08 if ("scenario" in doc_lower and len(legal_matches) >= 2) else 0.0
+
+        calibrated_sim = min(1.0, max(0.0, raw_sim + section_boost + overlap_boost + ipc_boost + scenario_boost - toc_penalty))
         return round(calibrated_sim, 4)
 
     def retrieve_with_similarity(
@@ -1222,6 +1227,25 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
             source="local_rag",
             confidence_score=1.0,
             citations=statute_citations,
+        )
+
+    # --------------------------------------------------------------------------
+    # Step 0D: Real-World Story & Fact-Pattern Legal Reasoning Engine
+    # --------------------------------------------------------------------------
+    scenario_match = match_story_scenario(query)
+    if scenario_match:
+        logger.info(
+            f"[ROUTER] Identified real-world story / scenario: '{scenario_match['domain']}'. "
+            f"Emitting factual standing, supporting sections, and strategic roadmap."
+        )
+        scenario_text, scenario_citations = synthesize_story_scenario_response(
+            scenario_match, query, role
+        )
+        return ChatResponse(
+            text=scenario_text,
+            source="local_rag",
+            confidence_score=0.98,
+            citations=scenario_citations,
         )
 
     # --------------------------------------------------------------------------

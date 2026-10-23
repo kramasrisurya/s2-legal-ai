@@ -120,6 +120,10 @@ def chunk_documents(documents: List[Document]) -> List[Document]:
         chunk_size=CHUNK_SIZE,
         chunk_overlap=CHUNK_OVERLAP,
         separators=[
+            "\n\nFAMILY SCENARIO: ",
+            "\n\nPROPERTY SCENARIO: ",
+            "\n\nFINANCIAL SCENARIO: ",
+            "\n\nCRIMINAL SCENARIO: ",
             "\n\nLANDMARK SC: ",
             "\n\nARTICLE ",
             "\n\nArticle ",
