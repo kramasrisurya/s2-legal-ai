@@ -478,21 +478,15 @@ def build_supreme_court_judgment_records() -> List[Tuple[str, str]]:
 
 
 def generate_all_corpus_files(data_dir: Path) -> None:
-    """Writes both comprehensive PDF corpora into the data directory."""
+    """Ensures legal statutory corpora are present without generating synthetic constitution.pdf."""
     data_dir.mkdir(parents=True, exist_ok=True)
 
-    const_path = data_dir / "constitution.pdf"
     sc_path = data_dir / "supreme_court_judgments.pdf"
-
-    const_sections = build_constitution_records()
-    const_bytes = create_pdf_binary(const_sections)
-    const_path.write_bytes(const_bytes)
-    print(f"[CORPUS BUILDER] Successfully built: {const_path} ({len(const_sections)} statutory parts)")
-
-    sc_sections = build_supreme_court_judgment_records()
-    sc_bytes = create_pdf_binary(sc_sections)
-    sc_path.write_bytes(sc_bytes)
-    print(f"[CORPUS BUILDER] Successfully built: {sc_path} ({len(sc_sections)} landmark precedents)")
+    if not sc_path.exists():
+        sc_sections = build_supreme_court_judgment_records()
+        sc_bytes = create_pdf_binary(sc_sections)
+        sc_path.write_bytes(sc_bytes)
+        print(f"[CORPUS BUILDER] Successfully built: {sc_path} ({len(sc_sections)} landmark precedents)")
 
 
 if __name__ == "__main__":

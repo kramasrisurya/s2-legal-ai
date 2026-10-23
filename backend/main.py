@@ -888,7 +888,7 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
             source="local_rag",
             confidence_score=1.0,
             citations=[
-                "[Local ChromaDB] backend/data/constitution.pdf (Complete Articles 1-395 & Schedules)",
+                "[Local ChromaDB] backend/data/constitution/ (Constitution Book: Original Manuscript & Complete Articles 1-395)",
                 "[Local ChromaDB] backend/data/supreme_court_judgments.pdf (8 Landmark SC Decisions)",
                 "[Local ChromaDB] backend/data/sample_arbitration_act.pdf (Arbitration Act 1996)",
                 "[Local ChromaDB] backend/data/sample_commercial_contracts.pdf (Indian Contract Act 1872)",
