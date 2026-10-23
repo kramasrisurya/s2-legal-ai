@@ -598,18 +598,19 @@ def generate_conversational_response() -> str:
     return (
         "### 🏛️ S2 Legal AI Pro - Research Assistant\n"
         "Hello! I am **S2 Legal AI Pro**, your research-grade legal intelligence assistant specialized in **Indian Jurisprudence**.\n\n"
-        "### ⚖️ Dual-Engine Router Capabilities\n"
-        "1. **Local Privacy-Preserving Vector RAG (ChromaDB)**:\n"
-        "   - **The Entire Constitution of India**: Preamble, Fundamental Rights (Articles 12-35), Directive Principles, "
+        "I'm designed to provide precise, verifiable, and privacy-preserving legal analysis. Here is how I can assist you:\n\n"
+        "### ⚖️ Dual-Engine Capabilities\n"
+        "1. **Local Constitutional & Case Law RAG (100% On-Premise)**:\n"
+        "   - **The Constitution of India**: Preamble, Fundamental Rights (Articles 12–35), Directive Principles, "
         "Writ Jurisdictions (Articles 32 & 226), The Union, High Courts, Emergency Provisions, and Amendments (Article 368).\n"
-        "   - **Landmark Supreme Court Judgments**: *Kesavananda Bharati* (Basic Structure), *Maneka Gandhi* (Due Process), "
-        "*K.S. Puttaswamy* (Privacy), *Satender Kumar Antil* (Bail Guidelines), *Arnesh Kumar* (Arrest Guidelines), "
+        "   - **Landmark Supreme Court Judgments**: *Kesavananda Bharati* (Basic Structure), *Maneka Gandhi* (Due Process & Personal Liberty), "
+        "*Justice K.S. Puttaswamy* (Privacy), *Satender Kumar Antil* (Bail Guidelines), *Arnesh Kumar* (Arrest Safeguards), "
         "*Lalita Kumari* (Mandatory FIR), *D.K. Basu* (Custodial Safeguards), and *Shreya Singhal* (Free Speech).\n"
-        "   - **Commercial & Arbitration Law**: The Arbitration and Conciliation Act 1996 and Indian Contract Act 1872.\n\n"
+        "   - **Statutory Acts**: The Arbitration and Conciliation Act 1996 and Indian Contract Act 1872.\n\n"
         "2. **Real-Time Online Grounding Engine**:\n"
         "   - When queries require broader statutory analysis (Bharatiya Nyaya Sanhita 2023 [BNS], Bharatiya Nagarik "
         "Suraksha Sanhita [BNSS], Bharatiya Sakshya Adhiniyam [BSA], classic IPC/CrPC, or specific penal sections like Section 420), "
-        "the router automatically performs **live grounded research** with verifiable citations.\n\n"
+        "the router automatically performs **live grounded research** with verified citations.\n\n"
         "How can I assist your case research, statutory mapping, or legal drafting today?"
     )
 
@@ -635,7 +636,7 @@ def synthesize_online_search_answer(
     query: str, snippets: List[Dict[str, str]], role: str
 ) -> str:
     """
-    Synthesizes a thorough, professional legal analysis or courteous response.
+    Synthesizes a thorough, friendly, and professional legal analysis.
     Specifically checks for substantive penal sections (IPC <-> BNS concordance),
     procedural criminal law, commercial arbitration, and handles general queries politely.
     """
@@ -644,23 +645,22 @@ def synthesize_online_search_answer(
     # 1. Purely non-legal general queries
     if is_general_non_legal_query(query):
         return (
-            f"### ℹ️ General Information Notice\n"
-            f"Thank you for your inquiry: **'{query}'**.\n\n"
-            f"While **S2 Legal AI Pro** is an academic AI system specialized specifically in **Indian Jurisprudence** "
-            f"(The Constitution of India, Bharatiya Nyaya Sanhita, BNSS, BSA, and Supreme Court Landmark Judgments), "
-            f"here is helpful information for your query:\n\n"
-            f"- **Inquiry**: {query}\n"
-            f"- **Notice**: For legal research, statutory cross-referencing, bail jurisprudence, or constitutional ratio analysis, "
-            f"please enter your legal query and I will provide exhaustive statutory analysis with verified citations."
+            f"### ℹ️ General Information\n"
+            f"Thank you for your question: **'{query}'**.\n\n"
+            f"While **S2 Legal AI Pro** specializes primarily in **Indian Jurisprudence** "
+            f"(The Constitution of India, Bharatiya Nyaya Sanhita, BNSS, BSA, and Supreme Court Case Law), "
+            f"here is the information for your query:\n\n"
+            f"- **Question**: {query}\n"
+            f"- **System Note**: If you have any legal questions, statutory cross-referencing needs, bail inquiries, "
+            f"or constitutional case research, feel free to ask anytime!"
         )
 
     # 2. Section 420 IPC / Section 318(4) BNS (Cheating)
     if "420" in q_lower or "cheating" in q_lower:
         return (
-            "### 🔍 Statutory Summary: Cheating & Dishonest Inducement of Property\n"
-            "Under Indian criminal jurisprudence, **Section 420 of the Indian Penal Code (IPC)** historically governed the offence of "
-            "**Cheating and dishonestly inducing delivery of property**. Under the newly enacted **Bharatiya Nyaya Sanhita, 2023 (BNS)** "
-            "(effective July 1, 2024), this offence is now codified under **Section 318(4) BNS**.\n\n"
+            "### 📌 Quick Overview: Cheating & Dishonest Inducement of Property\n"
+            "Here is a complete breakdown of **Section 420 of the Indian Penal Code (IPC)** and its modern transition "
+            "under the newly enacted **Bharatiya Nyaya Sanhita, 2023 (BNS)** (effective July 1, 2024), where it is codified under **Section 318(4)**.\n\n"
             "### ⚖️ Statutory Framework (IPC vs BNS 2023 Concordance)\n"
             "| Legal Metric | Indian Penal Code (IPC) | Bharatiya Nyaya Sanhita (BNS 2023) |\n"
             "|---|---|---|\n"
@@ -670,30 +670,26 @@ def synthesize_online_search_answer(
             "| **Cognizability** | **Cognizable** (Arrest permissible without warrant) | **Cognizable** |\n"
             "| **Bail Classification** | **Non-Bailable** | **Non-Bailable** |\n"
             "| **Jurisdictional Court** | Magistrate of the first class | Magistrate of the first class |\n"
-            "| **Compoundability** | Compoundable by victim with court permission | Compoundable with permission of the court |\n\n"
+            "| **Compoundability** | Compoundable with permission of the court | Compoundable with permission of the court |\n\n"
             "### 🚨 Essential Legal Ingredients to Establish Cheating\n"
-            "To sustain an indictment or conviction under Section 420 IPC / Section 318(4) BNS, the prosecution must establish three non-negotiable elements:\n"
-            "1. **Deception**: Fraudulent or dishonest representation made by the accused to the complainant.\n"
-            "2. **Dishonest Intention at Inception**: The deceptive intention MUST exist at the time the promise was made or the contract was entered into. "
-            "The Supreme Court ruled in *Hridaya Ranjan Prasad Verma v. State of Bihar* (2000) and *Dalip Kaur v. Jagnar Singh* (2009) that a mere failure to "
-            "keep a promise subsequently does not constitute cheating; there must be dishonest intention at the very inception of the transaction.\n"
-            "3. **Inducement to Deliver Property**: The complainant was induced thereby to deliver any property or valuable security.\n\n"
+            "To establish an offence under Section 420 IPC / Section 318(4) BNS, the prosecution must prove three non-negotiable elements:\n"
+            "1. **Deception**: The accused made a fraudulent or dishonest representation to the complainant.\n"
+            "2. **Dishonest Intention at Inception**: The fraudulent intention **must exist at the very time the promise was made**. "
+            "As settled by the Supreme Court in *Hridaya Ranjan Prasad Verma v. State of Bihar* (2000), a mere breach of contract or failure to pay later does not constitute cheating unless dishonest intention existed at inception.\n"
+            "3. **Inducement to Deliver Property**: The victim was deceived into delivering valuable property or security.\n\n"
             "### 🛡️ Procedural Strategy & Safeguards (" + role.upper() + " Perspective)\n"
-            "- **Notice in Lieu of Arrest (Section 35(3) BNSS)**: Since the maximum punishment extends to 7 years, mandatory compliance with "
-            "**Section 35(3) of the Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)** (formerly Section 41A CrPC) under the landmark Supreme Court "
-            "ruling in *Arnesh Kumar v. State of Bihar* applies. Police cannot arrest mechanically without recorded reasons.\n"
-            "- **Bail Remedy (Section 482 BNSS)**: If an FIR is registered, Anticipatory Bail may be sought before the Sessions Court or High Court under "
-            "**Section 482 BNSS** (formerly Section 438 CrPC).\n"
-            "- **High Court Quashing (Section 528 BNSS)**: Where the dispute is predominantly of a civil or breach-of-contract nature without criminal inception, "
-            "a quashing petition under **Section 528 BNSS** (formerly Section 482 CrPC) should be filed before the High Court to prevent abuse of judicial process.\n\n"
-            "DISCLAIMER: Educational legal prototype. Verify all filings with an Advocate."
+            "- **Notice in Lieu of Arrest (Section 35(3) BNSS)**: Since punishment is up to 7 years, compliance with **Section 35(3) BNSS** "
+            "(formerly Section 41A CrPC) under the landmark Supreme Court ruling in *Arnesh Kumar v. State of Bihar* is mandatory. Routine arrest is impermissible without recorded reasons.\n"
+            "- **Anticipatory Bail (Section 482 BNSS)**: Pre-arrest protection can be sought before the Sessions Court or High Court under **Section 482 BNSS** (formerly Section 438 CrPC).\n"
+            "- **High Court Quashing (Section 528 BNSS)**: If the transaction is fundamentally a commercial dispute without criminal inception, a quashing petition under **Section 528 BNSS** (formerly Section 482 CrPC) can be moved before the High Court.\n\n"
+            "> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
         )
 
     # 3. Section 302 IPC / Section 103(1) BNS (Murder)
     if "302" in q_lower or "murder" in q_lower:
         return (
-            "### 🔍 Statutory Summary: Offence of Murder\n"
-            "Under Indian criminal law, **Section 302 of the Indian Penal Code (IPC)** historically prescribed the punishment for murder. "
+            "### 📌 Quick Overview: Offence of Murder\n"
+            "Under Indian criminal jurisprudence, **Section 302 of the IPC** prescribed the punishment for murder. "
             "Under the **Bharatiya Nyaya Sanhita, 2023 (BNS)**, the offence is codified under **Section 103(1)** (and mob lynching under Section 103(2)).\n\n"
             "### ⚖️ Statutory Framework (IPC vs BNS 2023 Concordance)\n"
             "| Legal Metric | Indian Penal Code (IPC) | Bharatiya Nyaya Sanhita (BNS 2023) |\n"
@@ -709,16 +705,16 @@ def synthesize_online_search_answer(
             "2. **Culpable Homicide Distinction**: Act falls outside the five general exceptions of culpable homicide not amounting to murder (grave & sudden provocation, private defense, public servant acts, sudden fight, consent).\n\n"
             "### 🛡️ Procedural Strategy (" + role.upper() + ")\n"
             "- **Bail Jurisprudence**: Governed by Category C/D in *Satender Kumar Antil v. CBI*. Strict judicial scrutiny under Section 480 BNSS (Section 439 CrPC).\n"
-            "- **Forensic & Inquest**: Compliance with Section 194 BNSS (Inquest) and Bharatiya Sakshya Adhiniyam, 2023 (BSA) electronic and forensic chain of custody.\n\n"
-            "DISCLAIMER: Educational legal prototype. Verify all filings with an Advocate."
+            "- **Forensic & Inquest**: Compliance with Section 194 BNSS (Inquest) and Bharatiya Sakshya Adhiniyam, 2023 (BSA) electronic chain of custody.\n\n"
+            "> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
         )
 
     # 4. Section 498A IPC / Section 85 & 86 BNS (Cruelty by Husband or Relatives)
     if "498a" in q_lower or "cruelty" in q_lower or "dowry" in q_lower:
         return (
-            "### 🔍 Statutory Summary: Cruelty by Husband or Relatives\n"
-            "Under Indian criminal law, **Section 498A of the IPC** dealt with husband or relative of husband subjecting a woman to cruelty. "
-            "Under the **Bharatiya Nyaya Sanhita, 2023 (BNS)**, cruelty is now divided into **Section 85 (Punishment)** and **Section 86 (Definition)**.\n\n"
+            "### 📌 Quick Overview: Cruelty by Husband or Relatives\n"
+            "Under Indian criminal law, **Section 498A of the IPC** dealt with cruelty against a married woman. "
+            "Under the **Bharatiya Nyaya Sanhita, 2023 (BNS)**, cruelty is codified under **Section 85 (Punishment)** and **Section 86 (Definition)**.\n\n"
             "### ⚖️ Statutory Framework (IPC vs BNS 2023 Concordance)\n"
             "| Legal Metric | Indian Penal Code (IPC) | Bharatiya Nyaya Sanhita (BNS 2023) |\n"
             "|---|---|---|\n"
@@ -731,13 +727,13 @@ def synthesize_online_search_answer(
             "- ***Arnesh Kumar v. State of Bihar* (2014)**: Mandatory compliance with Section 35(3) BNSS (Section 41A CrPC) checklist before arresting husband or in-laws.\n"
             "- ***Social Action Forum for Manav Adhikar v. Union of India* (2018)**: Clarified investigation procedures and anticipatory bail availability.\n"
             "- **Remedies**: High Court petition under Section 528 BNSS (Section 482 CrPC) for quashing where allegations are omnibus, vague, or retaliatory.\n\n"
-            "DISCLAIMER: Educational legal prototype. Verify all filings with an Advocate."
+            "> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
         )
 
     # 5. Bail & Arrest Procedure (CrPC vs BNSS 2023)
     if "bail" in q_lower or "arrest" in q_lower or "anticipatory" in q_lower:
         return (
-            "### 🔍 Statutory Summary: Bail & Arrest Safeguards under BNSS 2023\n"
+            "### 📌 Quick Overview: Bail & Arrest Safeguards under BNSS 2023\n"
             "The criminal procedure framework in India transitioned from the Code of Criminal Procedure, 1973 (CrPC) to the "
             "**Bharatiya Nagarik Suraksha Sanhita, 2023 (BNSS)** effective July 1, 2024.\n\n"
             "### ⚖️ Procedural Concordance (CrPC vs BNSS 2023)\n"
@@ -753,7 +749,7 @@ def synthesize_online_search_answer(
             "(punishable up to 7 years) must not involve routine arrest, and bail should be granted upon appearance without taking into custody.\n"
             "- ***D.K. Basu v. State of West Bengal* (1997)**: Formulated 11 mandatory guidelines for arrest, including memo of arrest, right to inform family, "
             "and medical examination.\n\n"
-            "DISCLAIMER: Educational legal prototype. Verify all filings with an Advocate."
+            "> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
         )
 
     # 6. General Legal Research with Filtered Snippets
@@ -762,17 +758,17 @@ def synthesize_online_search_answer(
 
     return (
         f"### 🔍 Legal Research Analysis: {query}\n"
-        f"Synthesized from real-time statutory concordance and jurisprudential analysis for **'{query}'**:\n\n"
+        f"Here is the verified statutory and jurisprudential analysis for **'{query}'**:\n\n"
         f"### 🌐 Verified Legal Grounding\n"
         f"{snippets_block}\n\n"
-        f"### ⚖️ Procedural & Strategic Analysis ({role.upper()})\n"
+        f"### ⚖️ Procedural & Strategic Insights ({role.upper()})\n"
         f"- **Statutory Transition**: Verify whether cause of action arose prior to or following July 1, 2024 to apply "
         f"the legacy codes (IPC/CrPC/IEA) or the newly enacted criminal codes (BNS/BNSS/BSA).\n"
         f"- **Judicial Hierarchy**: Ensure proceedings are instituted in the court of competent jurisdiction "
         f"(pecuniary, territorial, and subject-matter).\n"
         f"- **Remedies**: Evaluate available writ remedies before the High Court (Article 226) or Supreme Court (Article 32) "
         f"or statutory revision/appeal mechanisms.\n\n"
-        f"DISCLAIMER: Educational legal prototype. Verify all filings with an Advocate."
+        f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
     )
 
 
@@ -781,40 +777,40 @@ def synthesize_local_rag_answer(
     retrieved: List[Tuple[Document, float]],
     role: str,
 ) -> str:
-    """Synthesizes rich, structured constitutional and case law analysis from retrieved vectors."""
+    """Synthesizes rich, friendly, structured constitutional and case law analysis from retrieved vectors."""
     top_score = retrieved[0][1] if retrieved else 0.0
     primary_doc = retrieved[0][0]
     primary_content = primary_doc.page_content.strip()
-    primary_source = primary_doc.metadata.get("source_file", "Constitution of India")
 
-    lines = primary_content.split("\n")
+    lines = [l.strip() for l in primary_content.split("\n") if l.strip()]
     primary_heading = lines[0] if lines else "Constitutional Provision"
+    body_text = "\n".join(lines[1:]) if len(lines) > 1 else primary_content
 
     supporting_sections = []
     for d, s in retrieved[1:3]:
         src = d.metadata.get("source_file", "Statutory Source")
         first_line = d.page_content.strip().split("\n")[0]
-        supporting_sections.append(f"- **{first_line}** ({src}, Relevance: {s * 100:.1f}%)")
+        supporting_sections.append(f"• **{first_line}** ({src} — {s * 100:.0f}% relevance match)")
 
-    supporting_block = "\n".join(supporting_sections) if supporting_sections else "- The Constitution of India, 1950 (Supreme Lex)"
+    supporting_block = "\n".join(supporting_sections) if supporting_sections else "• The Constitution of India, 1950 (Supreme Lex)"
 
     return (
-        f"### 🏛️ Constitutional & Jurisprudential Summary\n"
-        f"The query relates directly to statutory provisions and Supreme Court precedents codified in the "
-        f"**Constitution of India** and landmark judicial ratios. Retrieved locally with confidence score of **{top_score * 100:.1f}%**.\n\n"
-        f"### ⚖️ Governing Statutory Authority & Judicial Ratio ({primary_heading})\n"
-        f"{primary_content}\n\n"
-        f"### 📚 Corroborating Judicial & Statutory Precedents\n"
+        f"### 📌 Key Takeaway & Constitutional Summary\n"
+        f"Here is the authoritative legal analysis for your inquiry: **'{query}'**. "
+        f"This was retrieved directly from the on-premise Constitutional corpus with a **{top_score * 100:.0f}% confidence match**.\n\n"
+        f"### 📜 Governing Constitutional Provision ({primary_heading})\n"
+        f"{body_text}\n\n"
+        f"### ⚖️ Judicial Precedents & Corroborating Authorities\n"
         f"{supporting_block}\n\n"
-        f"### 🛡️ Procedural Remedies & Strategic Analysis ({role.upper()})\n"
-        f"- **Constitutional Enforcement**: Fundamental rights under Part III may be directly enforced by invoking "
+        f"### 💡 Actionable Strategy & Remedies ({role.upper()} Perspective)\n"
+        f"• **Enforcement of Fundamental Rights**: Rights under Part III can be directly enforced by invoking "
         f"the original writ jurisdiction of the Supreme Court under **Article 32** or the High Court under **Article 226** "
-        f"(Writs of Habeas Corpus, Mandamus, Certiorari, Prohibition, Quo Warranto).\n"
-        f"- **Appellate Review**: Judicial orders of lower courts or tribunals may be challenged before the Supreme Court "
+        f"(Writs of Habeas Corpus, Mandamus, Certiorari, Prohibition, or Quo Warranto).\n"
+        f"• **Appellate Review**: Judicial orders of lower courts or tribunals can be challenged before the Supreme Court "
         f"via Special Leave Petition under **Article 136**.\n"
-        f"- **Binding Precedent**: Precedent established by the Supreme Court is binding on all courts throughout India "
+        f"• **Binding Precedent**: Precedent established by the Supreme Court is binding on all courts throughout India "
         f"pursuant to **Article 141**.\n\n"
-        f"DISCLAIMER: Educational legal prototype. Verify all filings with an Advocate."
+        f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
     )
 
 
