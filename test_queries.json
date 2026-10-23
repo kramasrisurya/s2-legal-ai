@@ -49,11 +49,11 @@
   },
   {
     "id": "TC-07",
-    "name": "Out-of-Domain Penal Fallback",
+    "name": "Out-of-Domain Penal Fallback (Section 420)",
     "query": "tell me about section 420",
     "expected_source": "gemini_fallback",
     "min_expected_confidence": 0.0,
-    "description": "Cheating / Penal code query; triggers live web search grounding."
+    "description": "Cheating / Penal code query; triggers live web search grounding with IPC vs BNS concordance."
   },
   {
     "id": "TC-08",
@@ -62,5 +62,21 @@
     "expected_source": "gemini_fallback",
     "min_expected_confidence": 0.0,
     "description": "Income tax query; triggers live online search grounding."
+  },
+  {
+    "id": "TC-09",
+    "name": "System Architecture & Data Origin",
+    "query": "how are you getting data",
+    "expected_source": "local_rag",
+    "min_expected_confidence": 0.90,
+    "description": "System provenance query; returns ChromaDB, BGE-small, and local corpus specification."
+  },
+  {
+    "id": "TC-10",
+    "name": "General Non-Legal Query Handling",
+    "query": "what is the capital of France",
+    "expected_source": "gemini_fallback",
+    "min_expected_confidence": 0.0,
+    "description": "General non-legal query; handles courteously without erroneous legal labels."
   }
 ]
