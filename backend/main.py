@@ -64,7 +64,7 @@ logging.basicConfig(
 logger = logging.getLogger("AGENTIC_ROUTER")
 
 # Core Constants & Configuration
-SIMILARITY_THRESHOLD: float = float(os.getenv("SIMILARITY_THRESHOLD", "0.65"))
+SIMILARITY_THRESHOLD: float = float(os.getenv("SIMILARITY_THRESHOLD", "0.75"))
 BASE_DIR: Path = Path(__file__).resolve().parent
 DB_DIR: Path = BASE_DIR / "db" / "chroma_data"
 COLLECTION_NAME: str = "indian_legal_corpus"
@@ -1177,13 +1177,35 @@ def synthesize_local_rag_answer(
             break
 
     lines = [l.strip() for l in primary_content.split("\n") if l.strip()]
+    primary_heading = "Statutory Authority"
     heading_idx = 0
     for idx, line in enumerate(lines):
-        if re.search(r"^(?:\d+[\w]?\.|section\s+\d+|article\s+\d+|chapter\s+|part\s+|landmark)", line, re.IGNORECASE):
+        # Must contain at least one substantial word of letters
+        if not re.search(r"[a-zA-Z]{3,}", line):
+            continue
+        # Skip pure illustration labels like "(a)", "(b)", "Illustration"
+        if line.lower().startswith("illustration") or re.match(r"^\(?[a-z]\)", line):
+            continue
+        if re.search(r"^(?:(?:section|sec\.?)\s+\d+|article\s+\d+|\d+[\w]?\.\s+[A-Za-z]|chapter\s+|part\s+|landmark)", line, re.IGNORECASE):
             heading_idx = idx
+            primary_heading = line
+            break
+        elif re.search(r"^[A-Z\s,]{4,}$", line) and len(line.split()) <= 6:
+            heading_idx = idx
+            primary_heading = line
             break
 
-    primary_heading = lines[heading_idx] if lines else "Statutory Authority"
+    # If primary_heading is still generic or purely numbers, derive from document source
+    if primary_heading == "Statutory Authority" or not re.search(r"[a-zA-Z]{3,}", primary_heading):
+        if "penal" in primary_source or "ipc" in primary_source:
+            primary_heading = "The Indian Penal Code, 1860"
+        elif "constitution" in primary_source:
+            primary_heading = "The Constitution of India, 1950"
+        elif "supreme_court" in primary_source:
+            primary_heading = "Landmark Supreme Court Jurisprudence"
+        else:
+            primary_heading = "Statutory Authority & Precedents"
+
     body_text = "\n".join(lines[heading_idx:]) if heading_idx < len(lines) else primary_content
 
     # IPC section concordance table enhancements
@@ -1300,8 +1322,12 @@ def synthesize_local_rag_answer(
         )
 
     primary_title_clean = re.sub(r"^(?:\d+[\w]?\.|section\s+\d+|article\s+\d+)[:\.\s—–-]*", "", primary_heading, flags=re.IGNORECASE).strip()
-    is_genuine_statute = bool(re.search(r"\b(section|article|act|order|rule)\b", primary_heading, re.IGNORECASE)) or len(query_nums) > 0
-    if is_genuine_statute and primary_title_clean and not any(kw in primary_title_clean.lower() for kw in ["action plan", "protocol", "step", "golden hour", "checklist"]):
+    primary_title_clean = re.sub(r"^[—–-\.\s]+", "", primary_title_clean).strip()
+    is_genuine_statute = (
+        bool(re.search(r"\b(section|article|act|order|rule)\b", primary_heading, re.IGNORECASE))
+        or len(query_nums) > 0
+    )
+    if is_genuine_statute and len(primary_title_clean) >= 3 and re.search(r"[a-zA-Z]{3,}", primary_title_clean) and not any(kw in primary_title_clean.lower() for kw in ["action plan", "protocol", "step", "golden hour", "checklist"]):
         primary_label = f" primarily for **{primary_title_clean.upper()}**."
     else:
         primary_label = " established under authoritative Indian statutes and judicial precedents."
@@ -1380,11 +1406,11 @@ def extract_conversation_context(history: List[MessageItem]) -> Dict[str, Any]:
     if not history:
         return {}
 
-    history_texts = [m.content for m in history[-6:]]
-    combined_history = " ".join(history_texts).lower()
+    user_texts = [m.content for m in history[-6:] if m.role == "user"]
+    combined_history = " ".join(user_texts).lower() if user_texts else " ".join(m.content for m in history[-6:]).lower()
 
     # 1. Wills, Succession, Conflicting Wills & Probate
-    if any(k in combined_history for k in ["will", "wills", "probate", "inheritance", "grandfather", "grandmother", "testamentary", "codicil", "conflicting wills"]):
+    if any(k in combined_history for k in ["wills", "probate", "inheritance", "grandfather", "grandmother", "testamentary", "codicil", "conflicting wills"]):
         return {
             "domain": "wills_probate",
             "statute": "Indian Succession Act, 1925",
@@ -1402,7 +1428,7 @@ def extract_conversation_context(history: List[MessageItem]) -> Dict[str, Any]:
         }
 
     # 3. Matrimonial Cruelty & Dowry (498A / DV Act)
-    if any(k in combined_history for k in ["498a", "cruelty", "dowry", "domestic violence", "stridhan", "matrimonial"]):
+    if any(k in combined_history for k in ["498a", "cruelty", "dowry", "domestic violence", "stridhan", "matrimonial dispute", "matrimonial cruelty", "in-laws"]):
         return {
             "domain": "matrimonial_cruelty",
             "statute": "Section 498A IPC / Section 85 BNS & PWDVA 2005",
@@ -1426,6 +1452,69 @@ def extract_conversation_context(history: List[MessageItem]) -> Dict[str, Any]:
             "statute": "Indian Penal Code / Bharatiya Nyaya Sanhita 2023",
             "subject": "penal prohibitions and legal consequences of murder/assault",
             "court": "Court of Session",
+        }
+
+    # 6. Police Inaction & FIR Refusal
+    if re.search(r"\b(police\s+station|thana|sho|lalita\s+kumari|refus\w*\s+(?:to\s+register|fir)|zero\s+fir|first\s+information\s+report|police\s+inaction)\b|\bfir\b", combined_history):
+        return {
+            "domain": "police_fir_refusal",
+            "statute": "Section 154 / 156(3) CrPC & Section 173 / 175(3) BNSS",
+            "subject": "police refusal to register FIR and magisterial remedy",
+            "court": "Judicial Magistrate First Class (JMFC) / Metropolitan Magistrate",
+        }
+
+    # 7. Landlord Refusing Security Deposit
+    if any(k in combined_history for k in ["security deposit", "rental deposit", "deposit refund", "vacated flat", "landlord not returning", "withholding deposit"]):
+        return {
+            "domain": "security_deposit",
+            "statute": "Model Tenancy Act & Section 73 Contract Act / Order 37 CPC",
+            "subject": "landlord refusing to refund tenant security deposit",
+            "court": "Small Causes Court / Civil Judge / Consumer Commission",
+        }
+
+    # 8. Wrongful Termination & Unpaid Salary
+    if any(k in combined_history for k in ["terminated", "fired", "unpaid salary", "relieving letter", "severance", "layoff", "experience letter"]):
+        return {
+            "domain": "wrongful_termination",
+            "statute": "Payment of Wages Act 1936, Industrial Disputes Act & Order 37 CPC",
+            "subject": "wrongful termination, unpaid salary, and relieving certificate",
+            "court": "Labour Court / Controlling Authority / Civil Court",
+        }
+
+    # 9. E-Commerce Fraud & Defective Delivery
+    if any(k in combined_history for k in ["flipkart", "amazon", "soap in box", "counterfeit", "fake product", "consumer court", "ecommerce", "e-commerce"]):
+        return {
+            "domain": "consumer_fraud",
+            "statute": "Consumer Protection Act, 2019 & E-Commerce Rules 2020",
+            "subject": "e-commerce delivery fraud and consumer commission redressal",
+            "court": "District Consumer Disputes Redressal Commission (DCDRC)",
+        }
+
+    # 10. Cyber Blackmail & Sextortion
+    if any(k in combined_history for k in ["blackmail", "morphed photos", "sextortion", "intimate video", "cybercrime", "stopncii"]):
+        return {
+            "domain": "cyber_blackmail",
+            "statute": "Information Technology Act 2000 (Section 66E, 67A) & Section 384 IPC",
+            "subject": "cyber blackmail, sextortion and 24-hr emergency takedown",
+            "court": "Cyber Crime Police Station / Metropolitan Magistrate",
+        }
+
+    # 11. Medical Negligence
+    if any(k in combined_history for k in ["medical negligence", "doctor", "hospital", "wrong surgery", "sponge inside", "jacob mathew"]):
+        return {
+            "domain": "medical_negligence",
+            "statute": "Consumer Protection Act 2019 & Section 304A IPC / Section 106 BNS",
+            "subject": "medical negligence, hospital malpractice and compensation",
+            "court": "State/District Consumer Commission & Medical Board",
+        }
+
+    # 12. Defamation & Online Slander
+    if any(k in combined_history for k in ["defamation", "slander", "social media post", "defamed", "false allegations", "character assassination"]):
+        return {
+            "domain": "defamation",
+            "statute": "Section 499/500 IPC / Section 356 BNS & Civil Law of Torts",
+            "subject": "defamation, online slander and takedown injunction",
+            "court": "Metropolitan Magistrate (Criminal) & Civil Judge (Damages & Injunction)",
         }
 
     return {}
@@ -1641,6 +1730,235 @@ def handle_conversational_followup(
             ]
             return text, citations
 
+    # --------------------------------------------------------------------------
+    # D. POLICE FIR REFUSAL FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "police_fir_refusal":
+        if re.search(r"\b(which court|where to file|where should i go|jurisdiction)\b", q_lower):
+            text = (
+                f"### 🏛️ Jurisdictional Court & Magistrate for Police Refusal to Register FIR\n\n"
+                f"In continuation of our discussion regarding **{ctx['subject']}**:\n\n"
+                f"1. **Court of the Judicial Magistrate First Class (JMFC) / Metropolitan Magistrate**:\n"
+                f"   - Under **Section 156(3) CrPC / Section 175(3) BNSS**, you must approach the jurisdictional **Magistrate** having territorial jurisdiction over the police station where the crime occurred.\n"
+                f"   - The Magistrate has statutory power to direct the police to register the FIR and investigate immediately.\n\n"
+                f"2. **High Court Writ of Mandamus (Article 226)**:\n"
+                f"   - If grave continuous danger or severe custodial violence is involved, you can move a Writ Petition under Article 226 before the High Court."
+            )
+            citations = [
+                "[Statute] Code of Criminal Procedure, 1973 - Section 156(3) (Magisterial Power to Order FIR)",
+                "[Statute] Bharatiya Nagarik Suraksha Sanhita, 2023 - Section 175(3) (Magistrate Investigation Direction)",
+                "[Landmark Precedent] Lalita Kumari v. Govt. of U.P. (2014) 2 SCC 1",
+            ]
+            return text, citations
+
+        if re.search(r"\b(next step|what to do|what should i do|sp does not|what if sp)\b", q_lower):
+            text = (
+                f"### 📋 Exact Action Plan When Police Refuse to Register FIR\n\n"
+                f"1. **Step 1 — Written Complaint to SP/DCP (Section 154(3) CrPC / Section 173(4) BNSS)**:\n"
+                f"   - Send the complete substance of the offence in writing by **Registered Speed Post** to the **Superintendent of Police (SP) or Deputy Commissioner of Police (DCP)**.\n"
+                f"   - Preserve the India Post speed post receipt and online tracking delivery report.\n\n"
+                f"2. **Step 2 — Magistrate Application (Section 156(3) CrPC / Section 175(3) BNSS)**:\n"
+                f"   - If no action is taken within a reasonable period, file an application before the JMFC supported by an affidavit detailing prior compliance with Section 154(1) and 154(3) (*Priyanka Srivastava v. State of UP*).\n\n"
+                f"3. **Penal Sanction on Refusing Cop (Section 166A(c) IPC / Section 199 BNS)**:\n"
+                f"   - Under Section 166A IPC / Section 199 BNS, any police officer who fails to record FIR information is punishable with **1 to 2 years rigorous imprisonment and fine**."
+            )
+            citations = [
+                "[Statute] Code of Criminal Procedure, 1973 - Section 154(3) & Section 156(3)",
+                "[Statute] Indian Penal Code, 1860 - Section 166A(c) (Punishment for Cop Refusing FIR)",
+                "[Landmark Precedent] Priyanka Srivastava v. State of U.P. (2015) 6 SCC 287 (Affidavit Mandatory)",
+            ]
+            return text, citations
+
+    # --------------------------------------------------------------------------
+    # E. LANDLORD SECURITY DEPOSIT REFUND FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "security_deposit":
+        if re.search(r"\b(paint|painting|wear and tear|deduct|damage|renovation)\b", q_lower):
+            text = (
+                f"### 🛑 CANNOT DEDUCT: Strict Prohibition on Normal Wear & Tear Deductions\n\n"
+                f"> ⚠️ **DIRECT LEGAL ANSWER**:\n"
+                f"> **NO. The landlord CANNOT deduct money from your security deposit for normal wear and tear, repainting, or aging.**\n\n"
+                f"### ⚖️ Governing Tenancy Jurisprudence\n"
+                f"1. **Wear & Tear is Landlord's Expense**:\n"
+                f"   - Under Indian tenancy law and the **Model Tenancy Act**, normal wear and tear resulting from reasonable ordinary living (faded wall paint, minor scuffs, weather exposure) is the landlord's maintenance liability.\n"
+                f"   - Deductions are permissible **ONLY for actual physical damages deliberately caused by tenant** or unpaid utility/rent dues.\n\n"
+                f"2. **Criminal Breach of Trust (Section 405/406 IPC / Section 316 BNS)**:\n"
+                f"   - The deposit is held by the landlord **in trust**. Misappropriating or refusing to refund it after peaceful handover constitutes Criminal Breach of Trust."
+            )
+            citations = [
+                "[Statute] Model Tenancy Act (Mandatory Deposit Refund within 30 days)",
+                "[Statute] Indian Penal Code, 1860 - Section 405 & 406 (Criminal Breach of Trust)",
+                "[Contract Law] Indian Contract Act, 1872 - Section 73 (Unlawful Withholding of Funds)",
+            ]
+            return text, citations
+
+        if re.search(r"\b(which court|where to file|next step|what to do)\b", q_lower):
+            text = (
+                f"### ⚖️ Legal Remedies & Fast-Track Recovery of Security Deposit\n\n"
+                f"1. **Step 1 — 15-Day Advocate Legal Notice**:\n"
+                f"   - Serve a formal legal notice demanding refund of deposit plus **18% per annum commercial interest** within 15 days of receipt.\n\n"
+                f"2. **Step 2 — Summary Suit (Order XXXVII CPC)**:\n"
+                f"   - If not refunded, institute a **Summary Suit under Order 37 of the Code of Civil Procedure, 1908** in the Civil Court / Small Causes Court.\n"
+                f"   - Defendant landlord has no automatic right to defend without leave of court; decrees are typically granted rapidly.\n\n"
+                f"3. **Step 3 — Consumer Commission / Rent Tribunal**:\n"
+                f"   - File complaint before the District Consumer Commission or Rent Authority for deficiency in service and unfair trade practice."
+            )
+            citations = [
+                "[Procedural Law] Code of Civil Procedure, 1908 - Order XXXVII (Summary Suits)",
+                "[Statute] Indian Contract Act, 1872 - Section 73",
+            ]
+            return text, citations
+
+    # --------------------------------------------------------------------------
+    # F. WRONGFUL TERMINATION & SALARY FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "wrongful_termination":
+        if re.search(r"\b(relieving letter|experience letter|withhold|hold letter)\b", q_lower):
+            text = (
+                f"### 🛑 CANNOT WITHHOLD: Relieving Letter & Experience Certificate Rights\n\n"
+                f"> ⚠️ **DIRECT LEGAL ANSWER**:\n"
+                f"> **NO. An employer CANNOT legally withhold your Relieving Letter or Experience Certificate once you have completed your handover.**\n\n"
+                f"### ⚖️ Governing Statutory Grounds\n"
+                f"1. **Restraint of Trade Prohibited (Section 27 Indian Contract Act, 1872)**:\n"
+                f"   - An employer cannot prevent an employee from taking up future employment. Withholding exit documents is an unlawful indirect restraint of profession, rendering the employer liable for damages.\n\n"
+                f"2. **Labour Commissioner Intervention**:\n"
+                f"   - File an immediate complaint before the jurisdictional Labour Commissioner / Conciliation Officer; employers are routinely directed to issue relieving letters forthwith."
+            )
+            citations = [
+                "[Contract Law] Indian Contract Act, 1872 - Section 27 (Agreement in Restraint of Profession is Void)",
+                "[Precedent] Central Inland Water Transport Corp v. Brojo Nath Ganguly (1986) 3 SCC 156",
+            ]
+            return text, citations
+
+        if re.search(r"\b(which court|where to file|next step|what to do)\b", q_lower):
+            text = (
+                f"### 📋 Action Plan for Wrongful Termination & Unpaid Salary\n\n"
+                f"1. **Statutory Demand Notice**: Issue 15-day notice through an Advocate claiming unpaid wages, notice period pay, gratuity, and relieving certificate.\n"
+                f"2. **Ministry of Labour Samadhan Portal**: Register formal complaint on **shramsuvidha.gov.in / samadhan.labour.gov.in**.\n"
+                f"3. **EPFiGMS Complaint**: If provident fund was deducted but not deposited, file grievance on **epfigms.gov.in** for immediate EPFO inspection.\n"
+                f"4. **Civil Recovery Suit (Order 37 CPC)**: File summary suit for liquidated salary dues with 18% interest."
+            )
+            citations = [
+                "[Statute] Payment of Wages Act, 1936 - Section 15",
+                "[Statute] Industrial Disputes Act, 1947 - Section 25F",
+                "[Procedural Law] Code of Civil Procedure, 1908 - Order XXXVII",
+            ]
+            return text, citations
+
+    # --------------------------------------------------------------------------
+    # G. CONSUMER PROTECTION & E-COMMERCE FRAUD FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "consumer_fraud":
+        if re.search(r"\b(?:which\s+court|where.*(?:file|go)|jurisdiction|how\s+to\s+file|file.*online)\b", q_lower):
+            text = (
+                f"### 🏛️ Where to File E-Commerce Consumer Complaints (Online e-Daakhil Portal)\n\n"
+                f"1. **District Consumer Disputes Redressal Commission (DCDRC)**:\n"
+                f"   - Under **Section 35 of the Consumer Protection Act, 2019**, file before the District Commission having jurisdiction over where you reside (pecuniary jurisdiction up to ₹50 Lakhs).\n\n"
+                f"2. **100% Online Filing via e-Daakhil (edaakhil.nic.in)**:\n"
+                f"   - You do NOT need to hire an advocate or visit the court physically. Register online on **edaakhil.nic.in**, upload your order invoice, photos of soap/wrong item, and complaint.\n\n"
+                f"3. **Intermediary Shield Rejected**:\n"
+                f"   - Under Rule 5 & 6 of Consumer Protection (E-Commerce) Rules 2020, marketplace platforms cannot evade liability by claiming to be a mere intermediary."
+            )
+            citations = [
+                "[Statute] Consumer Protection Act, 2019 - Section 35 (Filing Consumer Complaint)",
+                "[Statute] Consumer Protection (E-Commerce) Rules, 2020 - Rule 5 & 6",
+                "[Portal] e-Daakhil Consumer Commission Online Portal (edaakhil.nic.in)",
+            ]
+            return text, citations
+
+        if re.search(r"\b(next step|what to do|helpline)\b", q_lower):
+            text = (
+                f"### 📋 Immediate Action Plan for E-Commerce Fraud Delivery\n\n"
+                f"1. **National Consumer Helpline (NCH)**: Dial **1915** immediately or WhatsApp to **8800001915** or lodge grievance at **consumerhelpline.gov.in**.\n"
+                f"2. **Preserve Forensic Proof**: Keep the delivery box, barcode shipping label, unboxing video, and packing slip intact.\n"
+                f"3. **Chargeback Request**: If paid via Credit Card / Debit Card, call bank customer care and dispute the transaction citing 'Counterfeit / Non-Delivery of Goods'.\n"
+                f"4. **Police Complaint**: File FIR for Cheating under **Section 420 IPC / Section 318(4) BNS** against seller and marketplace."
+            )
+            citations = [
+                "[Helpline] National Consumer Helpline 1915 (consumerhelpline.gov.in)",
+                "[Statute] Indian Penal Code, 1860 - Section 420 (Cheating)",
+            ]
+            return text, citations
+
+    # --------------------------------------------------------------------------
+    # H. CYBER BLACKMAIL & SEXTORTION FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "cyber_blackmail":
+        if re.search(r"\b(pay|money|ransom|should i pay)\b", q_lower):
+            text = (
+                f"### 🛑 NEVER PAY: Immediate Emergency Guidance for Sextortion / Blackmail\n\n"
+                f"> ⚠️ **DIRECT LEGAL & SAFETY ADVICE**:\n"
+                f"> **DO NOT PAY A SINGLE RUPEE. NEVER TRANSFER MONEY.**\n\n"
+                f"### 🚨 Why You Must Not Pay:\n"
+                f"1. **Blackmailers Never Delete**: Paying signals vulnerability; the blackmailer will demand double the amount within hours.\n"
+                f"2. **Cut All Contact**: Block the blackmailer on WhatsApp/Instagram immediately, but **save screenshots of threats and profile URLs first** as evidence.\n"
+                f"3. **Emergency Helplines**: Call **1930** (Cyber Crime Helpline) and file report on **cybercrime.gov.in**."
+            )
+            citations = [
+                "[Helpline] National Cyber Crime Reporting Portal (1930 & cybercrime.gov.in)",
+                "[Statute] Information Technology Act, 2000 - Section 66E & 67A",
+                "[Statute] Indian Penal Code, 1860 - Section 384 (Extortion)",
+            ]
+            return text, citations
+
+        if re.search(r"\b(next step|what to do|takedown|stop leak|remove photo)\b", q_lower):
+            text = (
+                f"### 🛡️ 4-Step Emergency Protocol to Stop and Remove Leaked Photos\n\n"
+                f"1. **Upload Hashes to StopNCII.org**: Visit **StopNCII.org** (Stop Non-Consensual Intimate Images). It hashes the images directly on your device without uploading them; Meta, Instagram, and TikTok use these hashes to block any upload attempt.\n"
+                f"2. **24-Hour Intermediary Takedown Notice**: Under **Rule 3(2)(b) IT Rules, 2021**, social media platforms are legally required to remove non-consensual sexual/morphed imagery within **24 HOURS** of receiving a complaint.\n"
+                f"3. **Cyber Cell FIR**: File formal FIR under Sections 66E, 67A IT Act and Section 384 IPC (Non-bailable offences with up to 5-7 years imprisonment).\n"
+                f"4. **Identity Concealment**: Under Section 327 CrPC / Section 366 BNSS, your identity will remain masked in all court records."
+            )
+            citations = [
+                "[Tool] StopNCII.org (Algorithmic Image Blocking Across Platforms)",
+                "[Statute] Information Technology (Intermediary Guidelines) Rules, 2021 - Rule 3(2)(b)",
+                "[Statute] Information Technology Act, 2000 - Section 67A (Non-Bailable)",
+            ]
+            return text, citations
+
+    # --------------------------------------------------------------------------
+    # I. MEDICAL NEGLIGENCE FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "medical_negligence":
+        if re.search(r"\b(arrest doctor|can police arrest|police arrest)\b", q_lower):
+            text = (
+                f"### ⚖️ Police Cannot Routinely Arrest Doctors: The Jacob Mathew Safeguard\n\n"
+                f"> ⚠️ **DIRECT LEGAL ANSWER**:\n"
+                f"> **NO. Police CANNOT arrest the doctor immediately.**\n\n"
+                f"### 🏛️ Supreme Court Guidelines in Jacob Mathew (2005)\n"
+                f"1. **Gross Negligence Standard**: Simple lack of care or surgical error is not enough for criminal prosecution under Section 304A IPC; there must be **gross negligence**.\n"
+                f"2. **Mandatory Independent Medical Board**: Police must refer the case to an independent committee of qualified doctors (via the Chief Medical Officer) before registering a criminal case or making an arrest.\n"
+                f"3. **Consumer Forum Unaffected**: While criminal arrest requires a medical board, a **Consumer Compensation Claim before DCDRC/SCDRC** proceeds immediately based on the medical records and the doctrine of *Res Ipsa Loquitur* (*Achutrao Haribhau Khodwa*)."
+            )
+            citations = [
+                "[Landmark SC] Jacob Mathew v. State of Punjab (2005) 6 SCC 1 (Independent Medical Board Mandatory)",
+                "[Landmark SC] Achutrao Haribhau Khodwa v. State of Maharashtra (1996) 2 SCC 634 (Res Ipsa Loquitur)",
+                "[Statute] Consumer Protection Act, 2019",
+            ]
+            return text, citations
+
+    # --------------------------------------------------------------------------
+    # J. DEFAMATION & ONLINE SLANDER FOLLOW-UPS
+    # --------------------------------------------------------------------------
+    if domain == "defamation":
+        if re.search(r"\b(gag order|injunction|stop (him|them|post)|takedown|remove post)\b", q_lower):
+            text = (
+                f"### 🛑 Gag Orders & Mandatory Removal of Defamatory Posts\n\n"
+                f"1. **Civil Court Injunction (Order XXXIX Rules 1 & 2 CPC)**:\n"
+                f"   - File an urgent application for an **Ad-Interim Temporary Injunction (Gag Order)**.\n"
+                f"   - The Civil Court has power to order the immediate removal of all defamatory URLs and restrain the defendant from publishing further statements.\n\n"
+                f"2. **Platform Intermediary Notice**:\n"
+                f"   - Serve the court order or formal grievance notice on the Resident Grievance Officer of Meta/Twitter/YouTube under the IT Rules 2021.\n\n"
+                f"3. **Criminal Defamation (Section 500 IPC / Section 356 BNS)**:\n"
+                f"   - File a private criminal complaint before the Metropolitan Magistrate under Section 200 CrPC / Section 223 BNSS (punishable with imprisonment up to 2 years or fine)."
+            )
+            citations = [
+                "[Procedural Law] Code of Civil Procedure, 1908 - Order XXXIX Rules 1 & 2",
+                "[Statute] Indian Penal Code, 1860 - Section 499 & 500 (Defamation)",
+                "[Landmark SC] Subramanian Swamy v. Union of India (2016) 7 SCC 221",
+            ]
+            return text, citations
+
     return None
 
 
@@ -1796,7 +2114,19 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
     # --------------------------------------------------------------------------
     # Step 2: Threshold Evaluation (SIMILARITY_THRESHOLD = 0.75)
     # --------------------------------------------------------------------------
-    is_local_route: bool = top_score >= SIMILARITY_THRESHOLD
+    has_topical_overlap = False
+    if retrieved:
+        top_doc_text = retrieved[0][0].page_content.lower()
+        q_tokens = [w for w in re.findall(r"\b[a-zA-Z]{3,}\b", query.lower()) if w not in {
+            "what", "which", "where", "when", "that", "this", "from", "with",
+            "have", "been", "about", "tell", "does", "under", "regarding", "give", "please", "into"
+        }]
+        query_nums = re.findall(r"\b(\d+[a-zA-Z]?)\b", query)
+        has_num_match = any(num in top_doc_text for num in query_nums)
+        has_token_match = any(t in top_doc_text for t in q_tokens)
+        has_topical_overlap = has_num_match or has_token_match
+
+    is_local_route: bool = (top_score >= SIMILARITY_THRESHOLD) and has_topical_overlap
     chosen_source: Literal["local_rag", "gemini_fallback"] = (
         "local_rag" if is_local_route else "gemini_fallback"
     )
