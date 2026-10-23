@@ -692,7 +692,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
                 {message.citations.map((citation, cIdx) => (
                   <pre
                     key={cIdx}
-                    className="whitespace-pre-wrap bg-slate-950/90 border border-slate-800 text-slate-300 text-xs font-mono p-3 rounded-lg leading-relaxed overflow-x-auto"
+                    className="whitespace-pre-wrap bg-slate-900 border border-slate-700 text-slate-300 text-xs font-mono p-3 rounded-lg leading-relaxed overflow-x-auto"
                   >
                     {citation}
                   </pre>
