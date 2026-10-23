@@ -555,6 +555,12 @@ def generate_data_architecture_response(query: str) -> str:
         "  • *Lalita Kumari v. Govt. of U.P.* (Mandatory registration of FIR in cognizable offences)\n"
         "  • *D.K. Basu v. State of West Bengal* (Custodial violence safeguards and arrest memo requirements)\n"
         "  • *Shreya Singhal v. Union of India* (Striking down Section 66A IT Act for online free speech)\n"
+        "- **The Indian Penal Code, 1860 (Complete 511 Sections & General Exceptions)**:\n"
+        "  • General Exceptions (Sections 76–106), Right of Private Defence (Sections 96–106)\n"
+        "  • Abetment (Sections 107–120), Criminal Conspiracy (Sections 120A–120B)\n"
+        "  • Offences Against Life: Murder (Section 300/302), Dowry Death (Section 304B), Hurt & Grievous Hurt (Sections 319–338)\n"
+        "  • Offences Against Property: Theft (Sections 378–382), Extortion (Sections 383–389), Robbery & Dacoity (Sections 390–402), Criminal Breach of Trust (Sections 405–409), Cheating (Sections 415–420)\n"
+        "  • Forgery (Sections 463–477A), Cruelty by Relatives (Section 498A), Defamation (Sections 499–502)\n"
         "- **Commercial & Statutory Acts**:\n"
         "  • *The Arbitration and Conciliation Act, 1996* (Section 9 Interim relief, Section 11 Appointment, Section 34 Setting aside awards)\n"
         "  • *The Indian Contract Act, 1872* (Section 10 Valid contracts, Section 73 Unliquidated damages, Section 74 Liquidated damages)\n\n"
@@ -777,41 +783,92 @@ def synthesize_local_rag_answer(
     retrieved: List[Tuple[Document, float]],
     role: str,
 ) -> str:
-    """Synthesizes rich, friendly, structured constitutional and case law analysis from retrieved vectors."""
+    """Synthesizes rich, friendly, structured constitutional, penal, and case law analysis from retrieved vectors."""
     top_score = retrieved[0][1] if retrieved else 0.0
     primary_doc = retrieved[0][0]
     primary_content = primary_doc.page_content.strip()
+    primary_source = primary_doc.metadata.get("source_file", "").lower()
 
     lines = [l.strip() for l in primary_content.split("\n") if l.strip()]
-    primary_heading = lines[0] if lines else "Constitutional Provision"
+    primary_heading = lines[0] if lines else "Statutory Authority"
     body_text = "\n".join(lines[1:]) if len(lines) > 1 else primary_content
 
     supporting_sections = []
-    for d, s in retrieved[1:3]:
+    for d, s in retrieved[1:4]:
         src = d.metadata.get("source_file", "Statutory Source")
         first_line = d.page_content.strip().split("\n")[0]
         supporting_sections.append(f"• **{first_line}** ({src} — {s * 100:.0f}% relevance match)")
 
-    supporting_block = "\n".join(supporting_sections) if supporting_sections else "• The Constitution of India, 1950 (Supreme Lex)"
+    supporting_block = "\n".join(supporting_sections) if supporting_sections else "• Indian Legal Corpus Database"
+
+    # Contextualize heading and procedural strategy based on document source
+    if "penal" in primary_source or "ipc" in primary_source or "section" in primary_heading.lower():
+        summary_title = "Key Takeaway & Statutory Penal Analysis"
+        prov_title = f"Governing Penal Provision (Indian Penal Code 1860 / BNS Concordance)"
+        if role == "advocate":
+            strategy = (
+                "• **Statutory Concordance**: Cross-reference the cause of action against the July 1, 2024 implementation timeline "
+                "to apply either the Indian Penal Code (IPC 1860) or the newly enacted Bharatiya Nyaya Sanhita (BNS 2023).\n"
+                "• **Arrest & Investigation Safeguards**: For offences punishable with up to 7 years imprisonment, insist on mandatory "
+                "compliance with Section 35(3) BNSS (formerly Section 41A CrPC) under the *Arnesh Kumar* directives before arrest.\n"
+                "• **Bail & Quashing Avenue**: Prepare bail submissions under Section 480/482 BNSS (Sections 437/438/439 CrPC) or "
+                "file a petition under Section 528 BNSS (Section 482 CrPC) before the High Court if essential ingredients of criminal intent are absent."
+            )
+        else:
+            strategy = (
+                "• **Verify FIR vs Notice**: Ascertain whether a formal First Information Report (FIR) has been registered or if the police "
+                "have issued a preliminary notice under Section 35(3) BNSS / Section 41A CrPC.\n"
+                "• **Immediate Bail Protections**: Offences punishable with imprisonment up to 7 years cannot involve mechanical arrest. "
+                "You have the right to seek pre-arrest or anticipatory bail before the Sessions Court or High Court.\n"
+                "• **Documentary Evidence**: Preserve all receipts, written communications, bank transactions, and electronic records as "
+                "defense evidence under the Bharatiya Sakshya Adhiniyam, 2023 (BSA)."
+            )
+    elif "arbitration" in primary_source:
+        summary_title = "Key Takeaway & Commercial Arbitration Analysis"
+        prov_title = f"Governing Arbitration Provision ({primary_heading})"
+        strategy = (
+            "• **Arbitral Recourse**: Evaluate available remedies under Section 9 (interim relief) or Section 34 (application for setting aside arbitral award).\n"
+            "• **Patent Illegality Standard**: Remember that patent illegality under Section 34(2A) is restricted to domestic awards and cannot involve re-appreciation of evidence.\n"
+            "• **Limitation Period**: Ensure filing within the strict 3-month window (plus 30 days discretionary condonation) under Section 34(3)."
+        )
+    elif "contract" in primary_source:
+        summary_title = "Key Takeaway & Contractual Remedies"
+        prov_title = f"Governing Contract Law Provision ({primary_heading})"
+        strategy = (
+            "• **Damages for Breach**: Quantify claims under Section 73 of the Indian Contract Act 1872 for direct and natural losses.\n"
+            "• **Liquidated Damages**: Enforce stipulated reasonable compensation under Section 74 without proving actual damage.\n"
+            "• **Equitable Relief**: Assess feasibility of injunctions or specific performance under the Specific Relief Act, 1963."
+        )
+    elif "supreme_court" in primary_source or "landmark" in primary_heading.lower():
+        summary_title = "Key Takeaway & Landmark Precedent Ratio"
+        prov_title = f"Landmark Supreme Court Precedent ({primary_heading})"
+        strategy = (
+            "• **Binding Precedent**: Precedents of the Supreme Court are binding on all High Courts and subordinate tribunals across India pursuant to **Article 141**.\n"
+            "• **Constitutional Remedies**: Enforce binding legal ratios via writ petitions under **Article 32** (Supreme Court) or **Article 226** (High Court).\n"
+            "• **Appellate Jurisdiction**: Challenge non-compliant lower court decisions via Special Leave Petition under **Article 136**."
+        )
+    else:
+        summary_title = "Key Takeaway & Constitutional Summary"
+        prov_title = f"Governing Constitutional Provision ({primary_heading})"
+        strategy = (
+            "• **Enforcement of Fundamental Rights**: Rights under Part III can be directly enforced by invoking the original writ jurisdiction of the Supreme Court under **Article 32** or the High Court under **Article 226** (Writs of Habeas Corpus, Mandamus, Certiorari, Prohibition, or Quo Warranto).\n"
+            "• **Appellate Review**: Judicial orders of lower courts or tribunals can be challenged before the Supreme Court via Special Leave Petition under **Article 136**.\n"
+            "• **Binding Precedent**: Precedent established by the Supreme Court is binding on all courts throughout India pursuant to **Article 141**."
+        )
 
     return (
-        f"### 📌 Key Takeaway & Constitutional Summary\n"
+        f"### 📌 {summary_title}\n"
         f"Here is the authoritative legal analysis for your inquiry: **'{query}'**. "
-        f"This was retrieved directly from the on-premise Constitutional corpus with a **{top_score * 100:.0f}% confidence match**.\n\n"
-        f"### 📜 Governing Constitutional Provision ({primary_heading})\n"
+        f"This was retrieved directly from the on-premise statutory corpus with a **{top_score * 100:.0f}% confidence match**.\n\n"
+        f"### 📜 {prov_title}\n"
         f"{body_text}\n\n"
         f"### ⚖️ Judicial Precedents & Corroborating Authorities\n"
         f"{supporting_block}\n\n"
         f"### 💡 Actionable Strategy & Remedies ({role.upper()} Perspective)\n"
-        f"• **Enforcement of Fundamental Rights**: Rights under Part III can be directly enforced by invoking "
-        f"the original writ jurisdiction of the Supreme Court under **Article 32** or the High Court under **Article 226** "
-        f"(Writs of Habeas Corpus, Mandamus, Certiorari, Prohibition, or Quo Warranto).\n"
-        f"• **Appellate Review**: Judicial orders of lower courts or tribunals can be challenged before the Supreme Court "
-        f"via Special Leave Petition under **Article 136**.\n"
-        f"• **Binding Precedent**: Precedent established by the Supreme Court is binding on all courts throughout India "
-        f"pursuant to **Article 141**.\n\n"
+        f"{strategy}\n\n"
         f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
     )
+
 
 
 # ==============================================================================
@@ -824,19 +881,20 @@ def build_local_constitutional_prompt(
     role: str,
 ) -> Tuple[str, str]:
     system_prompt = (
-        "You are S2 Legal AI Pro - Local Constitutional Inference Engine.\n"
+        "You are S2 Legal AI Pro - Local Statutory & Constitutional Inference Engine.\n"
         "You operate in a strict, privacy-preserving, local-first environment.\n"
         "Your task is to answer the user's legal question STRICTLY and SOLELY using the "
-        "provided Indian Constitutional Articles and Supreme Court Precedents.\n\n"
+        "provided statutory texts (The Indian Penal Code 1860, The Constitution of India, Acts) and Supreme Court Precedents.\n\n"
         "MANDATORY CONSTRAINTS:\n"
-        "1. GROUNDING: Base every proposition exclusively on the provided Constitutional text and Judgments.\n"
+        "1. GROUNDING: Base every proposition exclusively on the provided statutory text and Judgments.\n"
         "2. CITATIONS: Enforce statutory and case citations. Explicitly quote and refer to the specific "
-        "Article numbers (e.g., [Article 14], [Article 21], [Article 226]) and Supreme Court judgments.\n"
+        "Section or Article numbers (e.g., [Section 420 IPC], [Section 302 IPC], [Article 21]) and Supreme Court judgments.\n"
         "3. FORMAT: Organize output cleanly into:\n"
-        "   - ### Constitutional & Case Law Summary\n"
-        "   - ### Relevant Articles & Judicial Ratio\n"
-        "   - ### Jurisprudential Analysis\n"
-        "   - ### Procedural Remedies (e.g. Writ jurisdiction under Art. 32 / Art. 226)\n"
+        "   - ### 📌 Key Takeaway & Legal Summary\n"
+        "   - ### 📜 Governing Statutory Provision & Ingredients\n"
+        "   - ### ⚖️ Corroborating Precedents & Jurisprudential Ratio\n"
+        "   - ### 💡 Actionable Strategy & Remedies\n"
+        "   - > **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing.\n"
     )
 
     context_snippets = []
@@ -884,6 +942,7 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
             source="local_rag",
             confidence_score=1.0,
             citations=[
+                "[Local ChromaDB] backend/data/indian_penal_code_1860.pdf (The Indian Penal Code 1860: Complete 511 Sections & General Exceptions)",
                 "[Local ChromaDB] backend/data/constitution/ (Constitution Book: Original Manuscript & Complete Articles 1-395)",
                 "[Local ChromaDB] backend/data/supreme_court_judgments.pdf (8 Landmark SC Decisions)",
                 "[Local ChromaDB] backend/data/sample_arbitration_act.pdf (Arbitration Act 1996)",
