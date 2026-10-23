@@ -572,6 +572,14 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
                 )}
               </span>
             )}
+            {!isUser && message.source === 'error' && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-950/70 text-rose-400 border border-rose-500/40 shadow-sm">
+                <svg className="w-3 h-3 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                <span>Offline / Error</span>
+              </span>
+            )}
           </div>
 
           {/* Copy Response Button */}
@@ -652,7 +660,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
                   />
                 </svg>
                 <span className="text-xs font-semibold text-slate-300">
-                  Verified Legal Sources & Context
+                  View Source Documents
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-bold border border-cyan-500/30">
                   {message.citations.length}

@@ -12,7 +12,7 @@ export interface Message {
   content: string;
   timestamp: Date;
   attachments?: FileAttachment[];
-  source?: 'local_rag' | 'gemini_fallback';
+  source?: 'local_rag' | 'gemini_fallback' | 'error';
   confidenceScore?: number;
   citations?: string[];
 }
