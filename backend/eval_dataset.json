@@ -1,0 +1,352 @@
+[
+  {
+    "id": 1,
+    "query": "What are the provisions for the writ of Habeas Corpus under Article 32 of the Constitution?",
+    "category": "in_domain",
+    "domain": "Fundamental Rights & Constitutional Remedies",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 2,
+    "query": "Explain the fundamental right to equality before law guaranteed under Article 14.",
+    "category": "in_domain",
+    "domain": "Fundamental Rights & Non-Discrimination",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 3,
+    "query": "What are the six democratic freedoms protected under Article 19(1) of the Constitution?",
+    "category": "in_domain",
+    "domain": "Fundamental Rights & Civil Liberties",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 4,
+    "query": "What is the constitutional scope of protection of life and personal liberty under Article 21?",
+    "category": "in_domain",
+    "domain": "Fundamental Rights & Due Process",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 5,
+    "query": "What powers does the High Court have to issue prerogative writs under Article 226?",
+    "category": "in_domain",
+    "domain": "High Court Writ Jurisdiction",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 6,
+    "query": "Explain the procedure and parliamentary majority required for constitutional amendments under Article 368.",
+    "category": "in_domain",
+    "domain": "Constitutional Amendment Powers",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 7,
+    "query": "What are the core Directive Principles of State Policy enumerated under Part IV of the Constitution?",
+    "category": "in_domain",
+    "domain": "Directive Principles of State Policy",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 8,
+    "query": "What are the Fundamental Duties of Indian citizens under Article 51A?",
+    "category": "in_domain",
+    "domain": "Fundamental Duties",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 9,
+    "query": "Explain the constitutional doctrine of Basic Structure established in Kesavananda Bharati v. State of Kerala.",
+    "category": "in_domain",
+    "domain": "Constitutional Precedents & Judicial Review",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 10,
+    "query": "What are the constitutional grounds for proclamation of National Emergency under Article 352?",
+    "category": "in_domain",
+    "domain": "Emergency Provisions",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 11,
+    "query": "What is the procedure and justification for imposing President's Rule in a State under Article 356?",
+    "category": "in_domain",
+    "domain": "Emergency Provisions & Federalism",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 12,
+    "query": "What are the constitutional protections against double jeopardy under Article 20(2)?",
+    "category": "in_domain",
+    "domain": "Fundamental Rights of Accused",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 13,
+    "query": "Explain the protection against self-incrimination guaranteed under Article 20(3) of the Constitution.",
+    "category": "in_domain",
+    "domain": "Fundamental Rights of Accused",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 14,
+    "query": "What is the constitutional freedom of conscience and religion guaranteed under Article 25?",
+    "category": "in_domain",
+    "domain": "Right to Freedom of Religion",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 15,
+    "query": "What cultural and educational rights are guaranteed to minorities under Article 29 and Article 30?",
+    "category": "in_domain",
+    "domain": "Minority Rights & Education",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 16,
+    "query": "Explain the advisory jurisdiction of the Supreme Court of India under Article 143.",
+    "category": "in_domain",
+    "domain": "Supreme Court Advisory Jurisdiction",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 17,
+    "query": "What is the procedure for impeachment of the President of India under Article 61?",
+    "category": "in_domain",
+    "domain": "Union Executive & Impeachment",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 18,
+    "query": "What constitutes a Money Bill and what is the special legislative procedure under Article 109 and Article 110?",
+    "category": "in_domain",
+    "domain": "Parliamentary Legislative Procedure",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 19,
+    "query": "Explain the constitutional appointment and security of tenure of Supreme Court Judges under Article 124.",
+    "category": "in_domain",
+    "domain": "Union Judiciary & Independence",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 20,
+    "query": "What is the role and constitutional mandate of the Comptroller and Auditor General under Article 148?",
+    "category": "in_domain",
+    "domain": "Comptroller & Auditor General",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 21,
+    "query": "What are the constitutional provisions for resolution of interstate water disputes under Article 262?",
+    "category": "in_domain",
+    "domain": "Inter-State Relations & Disputes",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 22,
+    "query": "Explain the constitutional role and duties of the Finance Commission under Article 280.",
+    "category": "in_domain",
+    "domain": "Fiscal Federalism & Finance Commission",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 23,
+    "query": "What constitutional immunities are provided to the President and Governors under Article 361?",
+    "category": "in_domain",
+    "domain": "Constitutional Immunities",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 24,
+    "query": "Explain the doctrine of Severability and doctrine of Eclipse under Article 13 of the Constitution.",
+    "category": "in_domain",
+    "domain": "Constitutional Doctrines & Judicial Review",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 25,
+    "query": "What are the constitutional provisions for reservation of seats for Scheduled Castes and Scheduled Tribes under Article 330 and 332?",
+    "category": "in_domain",
+    "domain": "Affirmative Action & Representation",
+    "expected_route": "local_rag"
+  },
+  {
+    "id": 26,
+    "query": "What is the punishment for cheating under the new Bharatiya Nyaya Sanhita?",
+    "category": "out_of_domain",
+    "domain": "Modern Criminal Law: BNS 2023",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 27,
+    "query": "How is digital personal data protected and what are penalties for data breaches under the DPDP Act 2023?",
+    "category": "out_of_domain",
+    "domain": "Recent Statutes: Data Privacy",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 28,
+    "query": "What is the penalty for hit-and-run motor vehicle accidents under Section 106(2) of the Bharatiya Nyaya Sanhita?",
+    "category": "out_of_domain",
+    "domain": "Modern Criminal Law: BNS 2023",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 29,
+    "query": "What constitutes the offence of mob lynching and what is the punishment under Section 103(2) of BNS?",
+    "category": "out_of_domain",
+    "domain": "Modern Criminal Law: BNS 2023",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 30,
+    "query": "What are the conditions for claiming compensation before the Motor Accident Claims Tribunal under MV Act?",
+    "category": "out_of_domain",
+    "domain": "Motor Vehicles & MACT Claims",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 31,
+    "query": "How can a consumer file an online complaint against e-commerce fraud under Consumer Protection Act 2019?",
+    "category": "out_of_domain",
+    "domain": "Consumer Protection & E-Commerce",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 32,
+    "query": "What are the statutory requirements for mandatory 15-day notice to quit under Section 106 of Transfer of Property Act?",
+    "category": "out_of_domain",
+    "domain": "Tenancy & Property Law",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 33,
+    "query": "What constitutes criminal breach of trust under Section 316 of the Bharatiya Nyaya Sanhita?",
+    "category": "out_of_domain",
+    "domain": "Modern Criminal Law: BNS 2023",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 34,
+    "query": "What is the procedure for mutual consent divorce and waiver of cooling-off period under Hindu Marriage Act?",
+    "category": "out_of_domain",
+    "domain": "Family & Matrimonial Law",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 35,
+    "query": "What are the penalties for cyber hacking and identity theft under Sections 66 and 66C of the IT Act?",
+    "category": "out_of_domain",
+    "domain": "Cyber Law & IT Act",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 36,
+    "query": "What is the statutory limitation period for filing a commercial summary suit under Order 37 of CPC?",
+    "category": "out_of_domain",
+    "domain": "Civil Procedure & Commercial Suits",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 37,
+    "query": "What is the punishment for organized crime syndicates under Section 111 of the Bharatiya Nyaya Sanhita?",
+    "category": "out_of_domain",
+    "domain": "Modern Criminal Law: BNS 2023",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 38,
+    "query": "How can an employee claim unpaid gratuity and severance pay under the Payment of Gratuity Act 1972?",
+    "category": "out_of_domain",
+    "domain": "Labor & Employment Law",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 39,
+    "query": "What are the grounds for challenging an arbitral award under Section 34 of the Arbitration and Conciliation Act 1996?",
+    "category": "out_of_domain",
+    "domain": "Commercial Arbitration & ADR",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 40,
+    "query": "What is the procedure for responding to a Section 148A reassessment notice under the Income-tax Act 1961?",
+    "category": "out_of_domain",
+    "domain": "Taxation & Regulatory Scrutiny",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 41,
+    "query": "What constitute patent infringement remedies and grounds for compulsory licensing under Patents Act 1970?",
+    "category": "out_of_domain",
+    "domain": "Intellectual Property: Patents",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 42,
+    "query": "What are the legal remedies for trademark infringement and passing off under Trade Marks Act 1999?",
+    "category": "out_of_domain",
+    "domain": "Intellectual Property: Trademarks",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 43,
+    "query": "What are the essential ingredients of criminal defamation under Section 356 of Bharatiya Nyaya Sanhita 2023?",
+    "category": "out_of_domain",
+    "domain": "Modern Criminal Law: BNS 2023",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 44,
+    "query": "What constitutes cruelty by husband or in-laws under Section 85 and Section 86 of the Bharatiya Nyaya Sanhita?",
+    "category": "out_of_domain",
+    "domain": "Modern Criminal Law: BNS 2023",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 45,
+    "query": "What is the statutory procedure for initiating corporate insolvency under Section 7 of the IBC 2016?",
+    "category": "out_of_domain",
+    "domain": "Corporate Law & Insolvency",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 46,
+    "query": "What are the statutory guidelines for Internal Complaints Committee inquiry under the POSH Act 2013?",
+    "category": "out_of_domain",
+    "domain": "Workplace Harassment & POSH Act",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 47,
+    "query": "What is the punishment for snatching under Section 304 of the Bharatiya Nyaya Sanhita?",
+    "category": "out_of_domain",
+    "domain": "Modern Criminal Law: BNS 2023",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 48,
+    "query": "How can a flat owner stop builder delay and claim interest under Section 18 of RERA 2016?",
+    "category": "out_of_domain",
+    "domain": "Real Estate Regulation & RERA",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 49,
+    "query": "What is the procedure for recovery of debt through the Debts Recovery Tribunal under SARFAESI Act?",
+    "category": "out_of_domain",
+    "domain": "Banking & Debt Recovery",
+    "expected_route": "gemini_fallback"
+  },
+  {
+    "id": 50,
+    "query": "What are the compounding provisions for goods and services tax evasion under the CGST Act 2017?",
+    "category": "out_of_domain",
+    "domain": "Taxation & GST Compliance",
+    "expected_route": "gemini_fallback"
+  }
+]
