@@ -1430,6 +1430,24 @@ def match_harm_or_violent_crime_query(query: str) -> Optional[Dict[str, Any]]:
     clean = re.sub(r"[^\w\s]", " ", query).strip().lower()
     clean = re.sub(r"\s+", " ", clean)
 
+    # 0. Suicide, Self-Harm & Life Crisis Interceptor (Priority 0)
+    suicide_patterns = [
+        r"\b(suicide|suicidal)\b",
+        r"\b(kill\s+my\s*self|ending\s+my\s*life|end\s+my\s*life|take\s+my\s*own\s*life|want\s+to\s+die|wanna\s+die|wish\s+to\s+die|better\s+off\s+dead)\b",
+        r"\b(how\s+to\s+die|ways\s+to\s+die|how\s+can\s+i\s+die)\b",
+        r"\b(hang\s+myself|poison\s+myself|slit\s+my\s+wrist|slit\s+my\s+wrists|cut\s+my\s+wrists)\b",
+        r"\b(can\s+i|can\s+we|may\s+i|should\s+i|could\s+i|is\s+it\s+(?:legal|allowed|permissible)\s+(?:to)?)\s+(?:do|commit|attempt)\s+suicide\b",
+        r"\b(can\s+i\s+do\s+suicide|can\s+i\s+commit\s+suicide|how\s+to\s+do\s+suicide|how\s+to\s+commit\s+suicide)\b",
+        r"\b(legality\s+of\s+suicide|is\s+suicide\s+(?:legal|allowed|a\s+crime))\b",
+    ]
+    if any(re.search(p, clean) for p in suicide_patterns):
+        return {
+            "type": "suicide_crisis",
+            "action": "suicide",
+            "target": "self",
+            "query": query,
+        }
+
     # 1. Direct permission, contemplation, or solicitation of violent harm / killing
     intent_pattern = (
         r"\b(can\s+i|can\s+we|may\s+i|is\s+it\s+legal(?:\s+to)?|is\s+it\s+allowed(?:\s+to)?|"
@@ -1519,6 +1537,53 @@ def synthesize_violent_harm_response(
     and punished under Indian Law.
     """
     match_type = match_info.get("type")
+
+    # 0. SUICIDE, SELF-HARM & LIFE CRISIS INTERCEPTOR (PRIORITY 0)
+    if match_type == "suicide_crisis":
+        text = (
+            "### 🚨 CRISIS SUPPORT & LEGAL DECLARATION: You Are Not Alone, Immediate Help is Available\n\n"
+            "> ⚠️ **IMMEDIATE CRISIS INTERVENTION**:\n"
+            "> **NO, please DO NOT harm yourself or end your life.** Your life has immense value, and whatever overwhelming distress, "
+            "pain, or hardship you are going through, compassionate, confidential support is available right now 24x7.\n\n"
+            "---\n\n"
+            "### 🆘 Official 24x7 National Crisis Helplines (India - Toll Free & Confidential)\n\n"
+            "If you or someone you know is experiencing acute distress or suicidal thoughts, please contact trained counselors immediately:\n\n"
+            "• 🧠 **Tele-MANAS (Ministry of Health & Family Welfare, Govt. of India)**:\n"
+            "  - **Toll-Free**: **14416** or **1800-891-4416** (24x7, Free, Multi-lingual Psychiatric & Psychological Support)\n\n"
+            "• 🤝 **KIRAN Mental Health Helpline (Ministry of Social Justice & Empowerment)**:\n"
+            "  - **Toll-Free**: **1800-599-0019** (24x7, Free & Completely Confidential)\n\n"
+            "• 📞 **AASRA Suicide Prevention Helpline**:\n"
+            "  - **Phone**: **+91-9820466726** (24x7 Professional Support)\n\n"
+            "• 🕊️ **Vandrevala Foundation for Mental Health**:\n"
+            "  - **Helpline**: **+91-9999 666 555** / **1860-2662-345** (24x7 Free Crisis Counseling)\n\n"
+            "• 🌸 **Sneha India Suicide Prevention Helpline**:\n"
+            "  - **Phone**: **+91-44-24640050** (24x7 Telephonic Support)\n\n"
+            "• 🚨 **National Emergency Police & Medical Services**: **112** (or **100** / **108**)\n\n"
+            "---\n\n"
+            "### ⚖️ Authoritative Legal Framework on Suicide in India\n\n"
+            "| Legal Dimension | Governing Provision | Legal Status & Protections |\n"
+            "|---|---|---|\n"
+            "| **Presumption of Severe Stress & Decriminalization** | **Section 115, Mental Healthcare Act, 2017 (MHCA)** | **Non-Punishable**: Any person attempting suicide is statutorily presumed to be under severe stress and **shall not be prosecuted or punished** under criminal law. The government is legally mandated to provide care, treatment, and rehabilitation. |\n"
+            "| **Modern Penal Law (Attempt)** | **Section 226, Bharatiya Nyaya Sanhita, 2023 (BNS)** | Punishable **ONLY** if an attempt is made with intent to compel/restrain a public servant from official duties (up to 1 yr or community service). Ordinary suicide attempts are **NOT** penalized. |\n"
+            "| **Legacy Penal Code (Historical)** | **Section 309, Indian Penal Code, 1860 (IPC)** | Historically prescribed up to 1 year imprisonment, but **statutorily overridden and rendered inoperative by Section 115 MHCA**. |\n"
+            "| **Abetment of Suicide (Severe Felony)** | **Section 306 IPC / Section 108 BNS** | Strictly illegal: Anyone who aids, abets, or drives a person to commit suicide commits a non-bailable felony punishable with **up to 10 years rigorous imprisonment & fine**. |\n"
+            "| **Abetment of Minor's Suicide** | **Section 305 IPC / Section 107 BNS** | Abetting suicide of a child or insane person is punishable with **DEATH or IMPRISONMENT FOR LIFE**. |\n"
+            "| **Constitutional Doctrine (Right to Life)** | **Article 21, Constitution of India** | The 5-Judge Constitution Bench of the Supreme Court in ***Gian Kaur v. State of Punjab* (1996) 2 SCC 648** held that Article 21 guarantees 'Right to Live with Dignity' but does **NOT** include a 'Right to Die'. |\n\n"
+            "---\n\n"
+            "### 🛡️ Legal Protection from Harassment & Coercive Pressure\n"
+            "If your distress is caused by external harassment, debts, or threats, Indian Law provides strong legal protections:\n"
+            "• **Predatory Loan Apps / Recovery Harassment**: Harassment by recovery agents violates RBI Fair Practices Code and Section 506 IPC / Section 351 BNS (Criminal Intimidation). File an immediate complaint at **cybercrime.gov.in** or call **1930**.\n"
+            "• **Domestic Violence & Matrimonial Harassment**: Approach the Protection Officer or Judicial Magistrate under Section 12 of the Protection of Women from Domestic Violence Act, 2005 (PWDVA) for immediate protection and residence orders.\n"
+            "• **Free Legal Aid (NALSA)**: Dial **15100** or visit **nalsa.gov.in** for free legal representation by an appointed advocate."
+        )
+        citations = [
+            "[Statute] Mental Healthcare Act, 2017 - Section 115 (Presumption of Severe Stress & Bar on Prosecution for Suicide Attempt)",
+            "[Statute] Bharatiya Nyaya Sanhita (BNS), 2023 - Section 226 (Attempt to Commit Suicide to Compel Public Servant) & Section 108 (Abetment of Suicide)",
+            "[Statute] Indian Penal Code, 1860 - Section 309 (Attempted Suicide - Overridden by MHCA) & Section 306 (Abetment)",
+            "[Constitutional Precedent] Gian Kaur v. State of Punjab (1996) 2 SCC 648 (Five-Judge Bench: Article 21 does not include Right to Die)",
+            "[Helpline] Tele-MANAS (14416) & KIRAN (1800-599-0019) 24x7 Free National Crisis Helplines",
+        ]
+        return text, citations
 
     # A. ROBBERY & DACOITY SAFETY INTERCEPTOR
     if match_type == "robbery_dacoity":

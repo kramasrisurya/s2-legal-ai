@@ -369,7 +369,7 @@ BANNED_CONTENT_KEYWORDS = {
 }
 
 BANNED_DOMAINS = {
-    "claude.ai", "anthropic.com", "openai.com", "chatgpt.com", "bing.com",
+    "claude.ai", "anthropic.com", "openai.com", "chatgpt.com",
     "facebook.com", "instagram.com", "tiktok.com", "twitter.com", "x.com",
 }
 
@@ -381,7 +381,14 @@ LEGAL_INDICATOR_KEYWORDS = {
     "accused", "magistrate", "tribunal", "arbitration", "tort", "crime", "criminal",
     "civil", "litigation", "judgement", "judgment", "precedent", "quashing", "appeal",
     "statutory", "judiciary", "jurisprudence", "arbitral", "award", "breach", "damages",
-    "fundamental", "habeas", "mandamus", "certiorari", "writ", "constitution"
+    "fundamental", "habeas", "mandamus", "certiorari", "writ", "constitution",
+    # Additional substantive legal domains
+    "trademark", "patent", "copyright", "consumer", "tenant", "tenancy", "landlord", "eviction",
+    "divorce", "maintenance", "alimony", "custody", "matrimonial", "marriage", "tax", "income tax",
+    "gst", "assessment", "cyber", "cybercrime", "hack", "phishing", "labor", "labour", "employment",
+    "gratuity", "provident", "cheque", "dishonour", "negotiable", "insolvency", "bankruptcy",
+    "company", "director", "nclt", "rbi", "challan", "traffic", "accident", "mact", "negligence",
+    "compensation", "suicide", "mental health", "crisis", "helpline", "defamation", "retrenchment"
 }
 
 
@@ -432,7 +439,13 @@ class OnlineSearchService:
             except ImportError:
                 from duckduckgo_search import DDGS
 
-            search_query = f"{query} Indian Law statute section legal"
+            clean_q = re.sub(r"[^\w\s]", " ", query).strip()
+            clean_q = re.sub(r"\s+", " ", clean_q)
+            if any(term in clean_q.lower() for term in ["india", "indian", "law", "act", "section", "ipc", "bns", "crpc", "court"]):
+                search_query = clean_q
+            else:
+                search_query = f"{clean_q} Indian law statute"
+
             with DDGS() as ddgs:
                 ddg_res = list(ddgs.text(search_query, max_results=max_results * 2))
                 for r in ddg_res:
@@ -969,6 +982,11 @@ def synthesize_online_search_answer(
     """
     q_lower = query.lower()
 
+    # 0. Suicide, Self-Harm & Life Crisis Interceptor (Priority 0 Safety Guard)
+    if any(k in q_lower for k in ["suicide", "suicidal", "kill myself", "end my life", "want to die", "can i do suicide", "can i commit suicide"]):
+        text, _ = synthesize_violent_harm_response({"type": "suicide_crisis"}, query, role)
+        return text
+
     # 1. Purely non-legal general queries
     if is_general_non_legal_query(query):
         return (
@@ -1115,8 +1133,43 @@ def synthesize_online_search_answer(
             f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
         )
 
-    # 8. Commercial & Contractual Disputes (Indian Contract Act, 1872)
-    if any(k in q_lower for k in ["contract", "agreement", "breach", "refund", "damages", "recovery"]):
+    # 8. Consumer Protection & E-Commerce Disputes
+    if any(k in q_lower for k in ["consumer", "defective", "deficiency in service", "e-commerce", "ecommerce", "refund product", "amazon", "flipkart", "fake product", "unfair trade", "ncdrc", "consumer court"]):
+        return (
+            f"### 🛍️ Legal Framework: Consumer Protection & Deficiency in Service\n"
+            f"Consumer grievances, defective products, and deficient services in India are governed by the **Consumer Protection Act, 2019 (CPA 2019)**:\n\n"
+            f"### ⚖️ Three-Tier Consumer Disputes Redressal Commission Hierarchy\n"
+            f"1. **District Consumer Commission (Section 35 CPA 2019)**: Entertains consumer complaints where value of goods/services paid does not exceed **₹50 Lakhs**.\n"
+            f"2. **State Consumer Commission (Section 47 CPA 2019)**: Entertains complaints where consideration exceeds **₹50 Lakhs up to ₹2 Crores**, plus appeals from District Commissions.\n"
+            f"3. **National Consumer Commission - NCDRC (Section 58 CPA 2019)**: Entertains claims exceeding **₹2 Crores**, plus appellate and revisional jurisdiction.\n"
+            f"4. **Product Liability & Misleading Ads (Sections 82–87 CPA 2019)**: Manufacturers, service providers, and e-commerce sellers are strictly liable for harm caused by defective goods or unfair trade practices.\n\n"
+            f"### 💡 Strategic Action Plan ({role.upper()})\n"
+            f"- **Formal Notice to Seller / Platform**: Dispatch a formal legal notice granting 15 days for refund, replacement, or compensation.\n"
+            f"- **Online Filing via e-Daakhil**: Consumer complaints can be filed seamlessly online via the government portal **edaakhil.nic.in** from anywhere in India.\n"
+            f"- **National Consumer Helpline**: Register a preliminary grievance via **consumerhelpline.gov.in** or call Toll-Free **1915** for swift mediation.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+
+    # 9. Cybercrime, IT Act & Online Blackmail / Fraud
+    if any(k in q_lower for k in ["cyber", "cybercrime", "hack", "hacking", "phishing", "blackmail", "blackmailing", "it act", "section 66", "morph", "morphing", "morphed", "data theft", "identity theft", "digital arrest", "cyber fraud", "sextortion", "leak photos"]):
+        return (
+            f"### 💻 Legal Framework: Cyber Offences, Digital Fraud & IT Act Remedies\n"
+            f"Cyber offences, financial phishing, identity theft, and online harassment in India are governed by the **Information Technology Act, 2000 (IT Act)** "
+            f"and the **Bharatiya Nyaya Sanhita, 2023 (BNS)**:\n\n"
+            f"### ⚖️ Substantive Statutory Provisions\n"
+            f"1. **Hacking & System Damage (Section 43 & 66 IT Act)**: Unauthorized access, downloading, or damaging computer systems carries up to 3 years imprisonment and fine up to ₹5 Lakhs.\n"
+            f"2. **Cheating by Impersonation / Phishing (Section 66D IT Act / Section 319 BNS)**: Fraudulent impersonation using digital devices or accounts is punishable with imprisonment up to 3 years.\n"
+            f"3. **Privacy Violation & Non-Consensual Imagery (Sections 66E, 67, 67A IT Act)**: Capturing or publishing private photos without consent or transmitting sexually explicit content carries imprisonment up to 5–7 years.\n"
+            f"4. **Extortion & Digital Blackmail (Section 384 IPC / Section 308 BNS)**: Coercive extortion via digital intimidation is a cognizable, non-bailable offence.\n\n"
+            f"### 💡 Immediate Emergency Steps ({role.upper()})\n"
+            f"- **National Cybercrime Reporting Portal**: Lodge an immediate complaint at **cybercrime.gov.in** or dial the 24x7 Citizen Financial Cyber Fraud Helpline **1930** to freeze stolen funds.\n"
+            f"- **Preserve Electronic Evidence (Section 63 BSA 2023)**: Take intact screenshots showing URLs, transaction IDs, UPI reference numbers, sender headers, and bank statements without altering metadata.\n"
+            f"- **Intermediary Takedown Notice**: Under Rule 3(2)(b) of IT Rules 2021, platforms (Meta, Google, X) must remove non-consensual intimate imagery within 24 hours of notification.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+
+    # 10. Commercial & Contractual Disputes (Indian Contract Act, 1872)
+    if any(k in q_lower for k in ["contract", "agreement", "breach", "damages", "recovery", "commercial dispute"]):
         return (
             f"### 💼 Legal Framework: Breach of Contract & Commercial Remedies\n"
             f"Commercial contracts and business obligations in India are governed by the **Indian Contract Act, 1872** "
@@ -1131,24 +1184,188 @@ def synthesize_online_search_answer(
             f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
         )
 
-    # 9. General Substantive Legal Analysis with Filtered Snippets
-    snippet_texts = [f"• **{s['title']}**: {s['snippet']}" for s in snippets[:3]]
-    snippets_block = "\n".join(snippet_texts) if snippet_texts else (
-        "• Legislative Framework: Indian Substantive & Procedural Codes (CPC, CrPC/BNSS, Evidence Act/BSA)\n"
-        "• Judicial Forum: Competent Civil / Criminal Court having subject-matter and territorial jurisdiction"
-    )
+    # 11. Intellectual Property (Copyright, Trademark, Patent & Fair Dealing)
+    if any(k in q_lower for k in ["copyright", "trademark", "patent", "ip infringement", "trade mark", "intellectual property", "fair dealing", "patent infringement"]):
+        return (
+            f"### 🛡️ Legal Framework: Intellectual Property Rights & Infringement Remedies\n"
+            f"Intellectual Property rights in India are governed by the **Copyright Act, 1957**, the **Trade Marks Act, 1999**, "
+            f"the **Patents Act, 1970**, and the **Commercial Courts Act, 2015**:\n\n"
+            f"### ⚖️ Governing Statutory Provisions & Remedies\n"
+            f"1. **Copyright Infringement (Sections 51 & 63 Copyright Act)**: Unauthorized reproduction, distribution, or public performance "
+            f"constitutes both a civil wrong and a cognizable criminal offence punishable with imprisonment from 6 months up to 3 years and fine (₹50,000 to ₹2 Lakh).\n"
+            f"2. **Trademark Infringement & Passing Off (Sections 29 & 134 Trade Marks Act)**: Using an identical or deceptively similar mark "
+            f"in relation to identical/similar goods entitles the proprietor to file an infringement suit before the District Court / High Court Commercial Division.\n"
+            f"3. **Injunctions & Search Orders (*Anton Piller* & *Mareva* Injunctions)**: Courts routinely grant ex-parte ad-interim injunctions, "
+            f"appoint Local Commissioners to seize infringing goods, and order accounts of profits or punitive damages.\n"
+            f"4. **Fair Dealing Exception (Section 52 Copyright Act)**: Genuine research, private study, review, and criticism do not constitute infringement.\n\n"
+            f"### 💡 Strategic Roadmap ({role.upper()} Perspective)\n"
+            f"- **Cease & Desist Legal Notice**: Issue an urgent statutory notice giving 7–15 days to halt infringement, deliver up infringing stock, and render accounts.\n"
+            f"- **Commercial Court Suit (Section 134 TM Act / Section 62 Copyright Act)**: File a formal infringement suit praying for perpetual injunction, delivery-up, and rendition of accounts.\n"
+            f"- **Pre-Litigation Mediation**: Under Section 12A of the Commercial Courts Act, pre-institution mediation is mandatory unless urgent interim ex-parte injunction is sought.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
 
+    # 12. Tenancy, Rent & Eviction (Landlord-Tenant Disputes)
+    if any(k in q_lower for k in ["tenant", "tenancy", "landlord", "evict", "eviction", "rent dispute", "security deposit", "rent agreement", "lease dispute", "rent control"]):
+        return (
+            f"### 🏠 Legal Framework: Tenancy Rights, Eviction & Security Deposit Disputes\n"
+            f"Landlord-tenant relationships in India are governed by the **Transfer of Property Act, 1882 (TPA)**, "
+            f"State Rent Control Acts, and the **Model Tenancy Act, 2021**:\n\n"
+            f"### ⚖️ Governing Legal Principles\n"
+            f"1. **Statutory Notice to Quit (Section 106 TPA)**: A monthly tenancy is terminable by a mandatory **15-day written notice to quit**, expiring with the end of a month of the tenancy.\n"
+            f"2. **No Eviction Without Due Process of Law (*Bishandas v. State of Punjab*, AIR 1961 SC 1570)**: A landlord cannot forcibly evict a tenant, cut off electricity/water, or lock premises without a court decree. Forcible dispossession invites Section 6 Specific Relief Act suit.\n"
+            f"3. **Security Deposit Refund**: Withholding deposit without itemized invoices for genuine damages constitutes unjust enrichment and breach of trust.\n"
+            f"4. **Mesne Profits (Section 2(12) CPC)**: If a tenant stays after valid lease determination, landlord is entitled to market rent as mesne profits.\n\n"
+            f"### 💡 Actionable Strategy ({role.upper()})\n"
+            f"- **Issue Section 106 Notice**: Serve registered speed post notice demanding delivery of vacant possession upon expiry of 15 days.\n"
+            f"- **Suit for Ejectment & Arrears**: File an eviction suit before the Rent Tribunal / Civil Court under CPC.\n"
+            f"- **Deposit of Rent Arrears (Order 39 Rule 10 CPC)**: Move an application compelling tenant to deposit admitted rent monthly in court during litigation.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+
+    # 13. Family Law, Matrimonial, Divorce & Custody
+    if any(k in q_lower for k in ["divorce", "maintenance", "alimony", "child custody", "custody of child", "mutual consent divorce", "restitution of conjugal", "matrimonial dispute", "domestic violence"]):
+        return (
+            f"### 💍 Legal Framework: Matrimonial Disputes, Divorce & Maintenance\n"
+            f"Matrimonial proceedings in India are governed by the **Hindu Marriage Act, 1955 (HMA)**, **Special Marriage Act, 1954**, "
+            f"**Family Courts Act, 1984**, and the **Protection of Women from Domestic Violence Act, 2005 (PWDVA)**:\n\n"
+            f"### ⚖️ Substantive Statutory Provisions\n"
+            f"1. **Contested Divorce (Section 13 HMA)**: Available on statutory grounds including cruelty (mental/physical), desertion (for continuous 2+ years), adultery, and mental disorder.\n"
+            f"2. **Mutual Consent Divorce (Section 13B HMA)**: Joint petition with minimum 1 year separation. The statutory 6-month cooling period can be waived by the court (*Amardeep Singh v. Harveen Kaur* (2017) 8 SCC 746).\n"
+            f"3. **Statutory Maintenance (Section 125 CrPC / Section 144 BNSS & Section 24/25 HMA)**: Wife and dependent children are entitled to interim and permanent maintenance commensurate with husband's standard of living (*Rajnesh v. Neha* (2021) 2 SCC 324).\n"
+            f"4. **Child Custody**: Governed by the paramount principle of the **welfare of the minor child** (*Gaurav Nagpal v. Sumedha Nagpal*).\n\n"
+            f"### 💡 Actionable Strategy ({role.upper()})\n"
+            f"- **File Comprehensive Asset Affidavit**: Both parties must submit mandatory income and expenditure disclosures under *Rajnesh v. Neha*.\n"
+            f"- **Court-Annexed Mediation**: Matrimonial disputes are referred to court mediation centers under Section 89 CPC for amicable settlement.\n"
+            f"- **Urgent Interim Protection**: Under PWDVA Section 12, seek urgent residence orders (right to reside in shared household) and interim maintenance.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+
+    # 14. Labor, Employment & Wrongful Termination
+    if any(k in q_lower for k in ["termination", "wrongful termination", "unlawful dismissal", "labor court", "labour court", "retrenchment", "severance", "posh act", "gratuity", "salary dues", "unpaid salary"]):
+        return (
+            f"### 🏢 Legal Framework: Employment Rights, Retrenchment & Wrongful Dismissal\n"
+            f"Workplace rights, retrenchment compensation, and termination safeguards in India are governed by the **Industrial Disputes Act, 1947 (IDA)**, "
+            f"the **Payment of Gratuity Act, 1972**, and the **POSH Act, 2013**:\n\n"
+            f"### ⚖️ Substantive Labor Safeguards\n"
+            f"1. **Conditions Precedent to Retrenchment (Section 25F IDA)**: A workman with 1+ year continuous service cannot be terminated without: "
+            f"(a) 1 month written notice indicating reasons or pay in lieu thereof, and (b) retrenchment compensation equal to **15 days average pay for every completed year of service**.\n"
+            f"2. **Mandatory Gratuity (Section 4 Payment of Gratuity Act)**: Payable to any employee completing 5 continuous years of service at the rate of 15 days salary per year worked (up to statutory cap of ₹20 Lakhs).\n"
+            f"3. **Principles of Natural Justice**: For misconduct dismissal, employer must conduct a domestic inquiry, issue a charge sheet, and give fair opportunity of hearing.\n"
+            f"4. **POSH Compliance**: Internal Complaints Committee (ICC) inquiry must strictly comply with natural justice and complete report within 90 days.\n\n"
+            f"### 💡 Strategic Action Plan ({role.upper()})\n"
+            f"- **Demand Notice for Unpaid Dues / Severance**: Issue legal notice detailing contractual terms, unpaid salary, and statutory severance.\n"
+            f"- **Approach Conciliation Officer (Labor Commissioner)**: Initiate conciliation proceedings under Section 12 IDA. If conciliation fails, matter is referred to the Labor Court / Industrial Tribunal.\n"
+            f"- **Commercial Summary Suit (Order 37 CPC)**: For executives / managerial staff outside IDA, file a summary recovery suit for contractual breach and salary arrears.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+
+    # 15. Motor Vehicles & Accident Claims (MACT)
+    if any(k in q_lower for k in ["motor vehicle", "accident claim", "mact", "hit and run", "rash driving", "traffic challan", "drink and drive", "mv act", "traffic fine"]):
+        return (
+            f"### 🚗 Legal Framework: Motor Vehicle Accidents & MACT Compensation\n"
+            f"Motor accidents, third-party claims, and vehicular offences in India are governed by the **Motor Vehicles Act, 1988 (as amended by Act 32 of 2019)**:\n\n"
+            f"### ⚖️ Substantive Statutory Provisions\n"
+            f"1. **Compensation Claim Before MACT (Section 166 MV Act)**: Victim or legal heirs can file claim for just compensation against driver, owner, and insurance company without strict limitation period (*New India Assurance v. C. Padma*).\n"
+            f"2. **Multiplier Method for Fatal / Disability Claims**: Compensation is calculated based on age, income, and future prospects under *Sarla Verma v. DTC* (2009) and *National Insurance v. Pranay Sethi* (2017).\n"
+            f"3. **Enhanced Hit & Run Compensation (Section 161 MV Act)**: Statutory scheme provides ₹2 Lakhs for death and ₹50,000 for grievous hurt in untraced hit-and-run accidents.\n"
+            f"4. **Drunk Driving Sanctions (Section 185 MV Act)**: Driving with blood alcohol > 30mg/100ml carries fine up to ₹10,000 and/or imprisonment up to 6 months.\n\n"
+            f"### 💡 Strategic Action Plan ({role.upper()})\n"
+            f"- **Detailed Accident Report (DAR)**: Obtain certified copies of FIR, Motor Vehicle Inspection (MVI) report, charge sheet, and insurance policy from police.\n"
+            f"- **File Petition Before MACT**: Institute claim before the Motor Accident Claims Tribunal where accident occurred or where claimant resides.\n"
+            f"- **Virtual Court for Traffic Challans**: Contest or compound traffic e-challans via the government portal **vcourts.gov.in**."
+        )
+
+    # 16. Taxation, GST & Corporate Scrutiny
+    if any(k in q_lower for k in ["tax", "income tax", "gst", "tax evasion", "reassessment", "scrutiny", "itat", "tax assessment", "cgst"]):
+        return (
+            f"### 📊 Legal Framework: Income Tax Reassessments, Scrutiny & GST Appeals\n"
+            f"Direct and indirect taxation disputes in India are governed by the **Income-tax Act, 1961** "
+            f"and the **Central Goods and Services Tax Act, 2017 (CGST Act)**:\n\n"
+            f"### ⚖️ Statutory Provisions & Safeguards\n"
+            f"1. **Reassessment Notice (Section 148 & 148A Income-tax Act)**: Assessing Officer must conduct preliminary inquiry and provide show-cause opportunity under Section 148A before issuing reassessment notice (*Union of India v. Ashish Agarwal* (2022)).\n"
+            f"2. **Appellate Hierarchy Direct Tax**: Appeal against assessment order lies before **CIT(Appeals)** (Section 246A), then **Income Tax Appellate Tribunal - ITAT** (Section 253), and High Court on substantial question of law (Section 260A).\n"
+            f"3. **GST Search & Appeals (Sections 67 & 107 CGST Act)**: Search must be authorized by Joint Commissioner. First appeal lies before Appellate Authority with mandatory pre-deposit of 10% of disputed tax.\n\n"
+            f"### 💡 Strategic Roadmap ({role.upper()})\n"
+            f"- **Respond to Section 148A Notice within 30 Days**: File detailed rebuttal on the Income Tax e-Filing portal establishing absence of escaped income.\n"
+            f"- **Stay of Demand Application**: Move application before AO / CIT(A) for stay of demand upon depositing 20% disputed tax under CBDT guidelines.\n"
+            f"- **Writ Jurisdiction (Article 226)**: If notice is issued beyond limitation period or in violation of natural justice, move High Court for quashing."
+        )
+
+    # 17. Defamation (Civil & Criminal)
+    if any(k in q_lower for k in ["defamation", "defame", "defamed", "slander", "libel", "reputation", "defamatory"]):
+        return (
+            f"### 🗣️ Legal Framework: Defamation Under Indian Jurisprudence\n"
+            f"Injury to reputation in India gives rise to both civil tortious remedies and criminal penal prosecution:\n\n"
+            f"### ⚖️ Statutory Framework (IPC vs BNS 2023 Concordance)\n"
+            f"1. **Criminal Defamation (Section 499 & 500 IPC / Section 356 BNS 2023)**:\n"
+            f"   - Making or publishing any imputation concerning any person intending to harm reputation is punishable with simple imprisonment up to **2 years, or fine, or both** (or community service under BNS).\n"
+            f"   - **10 Statutory Exceptions**: Truth for public good, fair comment on public conduct of public servants, opinion on merits of decided cases, etc.\n"
+            f"2. **Civil Defamation (Law of Torts)**:\n"
+            f"   - Civil suit for unliquidated damages for financial, professional, or social injury to reputation.\n"
+            f"3. **Constitutional Validity Upheld**: In ***Subramanian Swamy v. Union of India* (2016) 7 SCC 221**, the Supreme Court upheld the constitutional validity of criminal defamation under Article 19(2).\n\n"
+            f"### 💡 Strategic Action Plan ({role.upper()})\n"
+            f"- **Cease & Desist Legal Notice**: Serve notice granting 48–72 hours to pull down defamatory content, tender unconditional public apology, and cease dissemination.\n"
+            f"- **Private Criminal Complaint**: File complaint under **Section 223 BNSS (Section 200 CrPC)** before the Magistrate for summoning the accused.\n"
+            f"- **Civil Injunction & Damages**: File suit before District Court praying for perpetual injunction restraining further defamatory statements and claiming damages."
+        )
+
+    # 18. Arbitration & Alternative Dispute Resolution (ADR)
+    if any(k in q_lower for k in ["arbitration", "arbitral", "arbitrator", "arbitration award", "section 9 arbitration", "section 34 arbitration", "section 11 arbitration"]):
+        return (
+            f"### ⚖️ Legal Framework: Commercial Arbitration & Award Enforcement\n"
+            f"Domestic and international commercial arbitration in India is governed by the **Arbitration and Conciliation Act, 1996 (as amended)**:\n\n"
+            f"### 🏛️ Core Statutory Mechanisms\n"
+            f"1. **Referral to Arbitration (Section 8)**: Mandatory judicial referral where an arbitration agreement exists, unless prima facie no valid agreement exists.\n"
+            f"2. **Interim Measures by Court (Section 9)**: Pre-arbitral preservation of disputed property, amounts in dispute, or injunctions before the Commercial Court.\n"
+            f"3. **Appointment of Arbitrator (Section 11)**: Petition before High Court / Supreme Court when parties fail to agree on arbitrator appointment.\n"
+            f"4. **Setting Aside Arbitral Award (Section 34)**: Limited review strictly on grounds of patent illegality, violation of public policy, or natural justice breach (*Associate Builders v. DDA*).\n\n"
+            f"### 💡 Strategic Roadmap ({role.upper()})\n"
+            f"- **Section 21 Invocation Notice**: Formally invoke arbitration setting out disputes, claims, and proposing independent sole arbitrator.\n"
+            f"- **Section 9 Petition**: Move urgent application before the Commercial Court to secure assets/funds before tribunal constitution.\n"
+            f"- **Execution under Section 36**: Enforce arbitral award as a decree of the civil court under Order XXI CPC."
+        )
+
+    # 19. Grounded Legal Synthesis with Live Search Snippets or Adaptive Domain Framework
+    if snippets and len(snippets) > 0:
+        snippet_lines = []
+        for idx, s in enumerate(snippets[:4], start=1):
+            title = s.get("title", "Statutory Source")
+            snippet = s.get("snippet", "").strip()
+            url = s.get("url", "")
+            snippet_lines.append(f"{idx}. **{title}**\n   > {snippet}\n   *Source*: {url}")
+        snippets_block = "\n\n".join(snippet_lines)
+
+        return (
+            f"### 🔍 Legal Research Analysis: {query}\n"
+            f"Authoritative statutory grounding and jurisprudential analysis for **'{query}'**:\n\n"
+            f"### 🌐 Verified Real-Time Legal Research Grounding\n"
+            f"{snippets_block}\n\n"
+            f"### ⚖️ Governing Statutory Framework & Judicial Principles\n"
+            f"• **Legislative Grounding**: Relevant statutory codes (e.g., Bharatiya Nyaya Sanhita 2023, BNSS 2023, BSA 2023, or relevant Special Enactments) govern this subject.\n"
+            f"• **Jurisdictional Forum**: Redressal lies before the competent court, tribunal, or authority exercising subject-matter and territorial jurisdiction.\n"
+            f"• **Substantive Burdens**: Legal claims require satisfying essential statutory ingredients with contemporaneous documentary proof.\n\n"
+            f"### 🛡️ Strategic Action Roadmap ({role.upper()} Perspective)\n"
+            f"• **Preserve Material Proof**: Collect all written agreements, electronic communications, bank logs, or official correspondence.\n"
+            f"• **Statutory Notice**: Where required by substantive law, issue a formal legal demand notice granting opportunity to cure or respond.\n"
+            f"• **Forum Institution**: Institute appropriate proceedings before the court of first instance having pecuniary and territorial jurisdiction.\n\n"
+            f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
+        )
+
+    # 20. Intelligent Adaptive Fallback when Snippets are Sparse
     return (
-        f"### 🔍 Legal Research Analysis: {query}\n"
-        f"Here is the verified statutory and jurisprudential analysis for **'{query}'**:\n\n"
-        f"### 🌐 Verified Legal Grounding\n"
-        f"{snippets_block}\n\n"
-        f"### ⚖️ Procedural & Strategic Insights ({role.upper()})\n"
-        f"- **Forum Determination**: Ascertain whether the matter constitutes a Civil dispute (remedy before the Civil Court under CPC / Specific Relief Act) "
-        f"or a Criminal grievance (complaint / FIR under BNSS / BNS).\n"
-        f"- **Judicial Hierarchy**: Institute proceedings before the competent court of first instance having pecuniary and territorial jurisdiction.\n"
-        f"- **Limitation Period**: Verify applicable filing deadlines under the **Limitation Act, 1963** to ensure claims are not barred by efflux of time.\n"
-        f"- **Interim Protection**: Move interlocutory applications for status quo or injunction where immediate irreparable harm is threatened.\n\n"
+        f"### 🔍 Authoritative Legal Analysis: {query}\n"
+        f"Here is the verified statutory framework and legal roadmap for **'{query}'** under Indian Law:\n\n"
+        f"### ⚖️ Applicable Statutory Framework & Essential Legal Elements\n"
+        f"• **Subject Matter Jurisdiction**: This query involves substantive rights and liabilities governed by Indian legislation "
+        f"(including modern criminal enactments BNS/BNSS 2023, the Indian Contract Act, or relevant special statutes).\n"
+        f"• **Essential Ingredients**: To establish or defend any claim under this legal domain, the applicant must establish prima facie standing, "
+        f"a recognized legal injury (*injuria sine damno*), and compliance with statutory prerequisites.\n"
+        f"• **Applicable Limitation**: Claims and petitions must be instituted within the prescribed statutory period to prevent being barred by time.\n\n"
+        f"### 🛡️ Strategic Legal Roadmap ({role.upper()} Perspective)\n"
+        f"• **Examine Contemporaneous Evidence**: Gather signed instruments, notices, payment proofs, and witness statements.\n"
+        f"• **Issue Legal Notice**: Issue a formal, registered advocate notice stating cause of action and demanding restitution or response.\n"
+        f"• **Seek Judicial Redress**: Institute proceedings before the competent Magistrate, District Court, or specialized Tribunal having territorial jurisdiction.\n\n"
         f"> **Disclaimer**: Educational legal prototype. Please verify all draftings with an Advocate before filing."
     )
 

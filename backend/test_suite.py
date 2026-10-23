@@ -164,8 +164,74 @@ for idx, tc in enumerate(followup_tests, start=1):
 
 print(f"Total Follow-ups Tested: {len(followup_tests)} | Passed: {followup_passed}/{len(followup_tests)}")
 
-if passed == len(test_queries) and stat_passed == len(statutory_tests) and followup_passed == len(followup_tests):
-    print("ALL 55 ENGINE & FOLLOW-UP TESTS PASSED WITH 100% ACCURACY!")
+# --------------------------------------------------------------------------
+# Test Suicide, Self-Harm & Life Crisis Interceptor (Priority 0 Safety)
+# --------------------------------------------------------------------------
+from backend.statutory_engine import match_harm_or_violent_crime_query, synthesize_violent_harm_response
+
+suicide_tests = [
+    "can i do suicide now?",
+    "can i commit suicide",
+    "can i do suicide",
+    "i want to die",
+    "i want to end my life",
+    "i want to kill myself",
+    "how to commit suicide",
+    "is suicide legal in india",
+]
+
+suicide_passed = 0
+for sq in suicide_tests:
+    match_res = match_harm_or_violent_crime_query(sq)
+    if not match_res or match_res.get("type") != "suicide_crisis":
+        print(f"FAIL SUICIDE DETECTION: Query '{sq}' got {match_res}")
+        continue
+    txt, cits = synthesize_violent_harm_response(match_res, sq, "advocate")
+    required_keywords = ["tele-manas", "14416", "kiran", "mental healthcare act", "115"]
+    missing = [kw for kw in required_keywords if kw not in txt.lower()]
+    if missing:
+        print(f"FAIL SUICIDE SYNTHESIS: Query '{sq}' missing keywords {missing}")
+    else:
+        suicide_passed += 1
+
+print(f"Total Suicide Safety Tests: {len(suicide_tests)} | Passed: {suicide_passed}/{len(suicide_tests)}")
+
+# --------------------------------------------------------------------------
+# Test Online Fallback Domain Synthesis Engine
+# --------------------------------------------------------------------------
+from backend.main import synthesize_online_search_answer
+
+online_domain_tests = [
+    ("what is trademark infringement in india", "Trade Marks Act"),
+    ("flipkart delivered fake product refund consumer complaint", "Consumer Protection Act"),
+    ("someone is blackmailing me online with morphed photos", "Information Technology Act"),
+    ("landlord refusing to return security deposit of 50000", "Transfer of Property Act"),
+    ("company fired me without notice period or severance pay", "Section 25F"),
+    ("car hit my bike and ran away MACT compensation", "Motor Vehicles Act"),
+    ("received section 148 income tax reassessment notice", "Section 148"),
+    ("neighbor spreading false defamatory rumors about me in society", "Defamation"),
+]
+
+online_domain_passed = 0
+for oq, exp_term in online_domain_tests:
+    ans = synthesize_online_search_answer(oq, [], "advocate")
+    if exp_term.lower() in ans.lower():
+        online_domain_passed += 1
+    else:
+        print(f"FAIL ONLINE DOMAIN: Query '{oq}' did not contain expected term '{exp_term}'")
+
+print(f"Total Online Fallback Domain Tests: {len(online_domain_tests)} | Passed: {online_domain_passed}/{len(online_domain_tests)}")
+
+total_all_tests = len(test_queries) + len(statutory_tests) + len(followup_tests) + len(suicide_tests) + len(online_domain_tests)
+total_all_passed = passed + stat_passed + followup_passed + suicide_passed + online_domain_passed
+
+print(f"\n=======================================================")
+print(f"OVERALL TEST SCORE: {total_all_passed}/{total_all_tests} PASSED ({(total_all_passed/total_all_tests)*100:.1f}%)")
+print(f"=======================================================\n")
+
+if total_all_passed == total_all_tests:
+    print(f"ALL {total_all_tests} TESTS PASSED WITH 100% ACCURACY!")
     sys.exit(0)
 else:
     sys.exit(1)
+
