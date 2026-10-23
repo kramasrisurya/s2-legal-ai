@@ -34,6 +34,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from backend.scenario_engine import match_story_scenario, synthesize_story_scenario_response
+from backend.statutory_engine import match_statutory_section, synthesize_statutory_section_response
 
 # Load environment configuration (.env and .env.local)
 load_dotenv()
@@ -1200,13 +1201,15 @@ def synthesize_local_rag_answer(
             "• **Binding Precedent**: Precedent established by the Supreme Court is binding on all courts throughout India pursuant to **Article 141**."
         )
 
+    primary_title_clean = re.sub(r"^(?:\d+[\w]?\.|section\s+\d+|article\s+\d+)[:\.\s—–-]*", "", primary_heading, flags=re.IGNORECASE).strip()
+    primary_label = f" primarily for **{primary_title_clean.upper()}**." if primary_title_clean else "."
+
     return (
-        f"### 📌 {summary_title}\n"
-        f"Here is the authoritative legal analysis for your inquiry: **'{query}'**. "
-        f"This was retrieved directly from the on-premise statutory corpus with a **{top_score * 100:.0f}% confidence match**.\n\n"
+        f"### ⚖️ {primary_heading}\n\n"
+        f"> 📌 **PRIMARY PURPOSE**: Under Indian Law, this provision is{primary_label}\n\n"
         f"### 📜 {prov_title}\n"
         f"{body_text}{concordance_block}\n\n"
-        f"### ⚖️ Judicial Precedents & Corroborating Authorities\n"
+        f"### ⚖️ Statutory Context & Corroborating Authorities\n"
         f"{supporting_block}\n\n"
         f"### 💡 Actionable Strategy & Remedies ({role.upper()} Perspective)\n"
         f"{strategy}\n\n"
@@ -1342,6 +1345,26 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
             source="local_rag",
             confidence_score=0.98,
             citations=scenario_citations,
+        )
+
+    # --------------------------------------------------------------------------
+    # Step 0E: Specific Statutory Section & Article Legal Purpose Resolver (e.g. IPC 300, IPC 420, Art 21)
+    # --------------------------------------------------------------------------
+    statutory_match = match_statutory_section(query)
+    if statutory_match:
+        sec_key, stat_type = statutory_match
+        logger.info(
+            f"[ROUTER] Identified specific statutory section query: '{sec_key}' ({stat_type}). "
+            f"Emitting direct primary-purpose definition and BNS concordance."
+        )
+        stat_text, stat_citations = synthesize_statutory_section_response(
+            sec_key, stat_type, role
+        )
+        return ChatResponse(
+            text=stat_text,
+            source="local_rag",
+            confidence_score=1.0,
+            citations=stat_citations,
         )
 
     # --------------------------------------------------------------------------
