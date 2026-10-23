@@ -155,23 +155,23 @@
   },
   {
     "id": 23,
-    "query": "What constitutional immunities are provided to the President and Governors under Article 361?",
+    "query": "Can an accused challenge preventive detention under Article 22 when booked under BNS organized crime provisions?",
     "category": "in_domain",
-    "domain": "Constitutional Immunities",
+    "domain": "Constitutional Remedies & Preventive Detention",
     "expected_route": "local_rag"
   },
   {
     "id": 24,
-    "query": "Explain the doctrine of Severability and doctrine of Eclipse under Article 13 of the Constitution.",
+    "query": "Does the fundamental right to trade under Article 19(1)(g) exempt e-commerce platforms from state consumer protection rules?",
     "category": "in_domain",
-    "domain": "Constitutional Doctrines & Judicial Review",
+    "domain": "Economic Freedoms & Statutory Regulation",
     "expected_route": "local_rag"
   },
   {
     "id": 25,
-    "query": "What are the constitutional provisions for reservation of seats for Scheduled Castes and Scheduled Tribes under Article 330 and 332?",
+    "query": "What are the constitutional limits of the Governor discretion when withholding assent to a state tenancy bill under Article 200?",
     "category": "in_domain",
-    "domain": "Affirmative Action & Representation",
+    "domain": "Federal Legislative Procedure & Assent",
     "expected_route": "local_rag"
   },
   {
@@ -337,16 +337,16 @@
   },
   {
     "id": 49,
-    "query": "What is the procedure for recovery of debt through the Debts Recovery Tribunal under SARFAESI Act?",
+    "query": "What are the procedural safeguards of natural justice and fair hearing before an administrative licensing authority?",
     "category": "out_of_domain",
-    "domain": "Banking & Debt Recovery",
+    "domain": "Administrative Law & Public Licensing",
     "expected_route": "gemini_fallback"
   },
   {
     "id": 50,
-    "query": "What are the compounding provisions for goods and services tax evasion under the CGST Act 2017?",
+    "query": "Can an aggrieved citizen challenge an arbitrary government tender disqualification under the doctrine of legitimate expectation?",
     "category": "out_of_domain",
-    "domain": "Taxation & GST Compliance",
+    "domain": "Public Procurement & Commercial Contracts",
     "expected_route": "gemini_fallback"
   }
 ]

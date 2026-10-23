@@ -137,7 +137,7 @@ ENDPOINT_URL: str = os.getenv("BENCHMARK_ENDPOINT", "http://127.0.0.1:8000/api/c
 DATASET_PATH: Path = BASE_DIR / "eval_dataset.json"
 RESULTS_CSV_PATH: Path = BASE_DIR / "evaluation_results.csv"
 REQUEST_TIMEOUT: float = float(os.getenv("REQUEST_TIMEOUT", "30.0"))
-INTER_REQUEST_DELAY: float = float(os.getenv("INTER_REQUEST_DELAY", "2.0"))
+INTER_REQUEST_DELAY: float = float(os.getenv("INTER_REQUEST_DELAY", "1.0"))
 
 
 def load_dataset(dataset_path: Path) -> List[Dict[str, Any]]:
@@ -251,7 +251,8 @@ def run_benchmark() -> Any:
             f"[{idx:02d}/{len(dataset):02d}] {cat_badge} {match_symbol} | "
             f"Expected: {expected_route:15s} | Actual: {actual_source:15s} | "
             f"Conf: {confidence_score:.3f} | Latency: {latency_ms:7.1f}ms | "
-            f"Query: {query[:42]}..."
+            f"Query: {query[:42]}...",
+            flush=True,
         )
 
         # Rate-limiting delay between requests
