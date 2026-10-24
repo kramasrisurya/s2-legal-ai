@@ -1,0 +1,49 @@
+%% Figure 3: Agentic Router Decision Flowchart with Decision Gate (tau = 0.75)
+%% Publication: Router-Based Agentic Retrieval-Augmented Generation for Jurisprudential Reasoning
+flowchart TD
+    Start(["<b>User Query Arrival</b><br/><code>POST /api/chat</code><br/><i>Payload: {query, role, history}</i>"]) --> HistoryResolution["<b>Contextual Query Reformulation</b><br/>Resolve multi-turn anaphora & conversational context"]
+
+    HistoryResolution --> SafetyCheck{"<b>Severe Harm / Safety</b><br/>Emergency Self-Harm / Crime?"}
+    SafetyCheck -->|"Yes (Harm Detected)"| SafetyResponse["<b>Authoritative Legal Prohibition</b><br/>Direct statutory penal warnings<br/><i>source: 'local_rag', conf: 1.0</i>"]
+    SafetyCheck -->|"No (Normal Legal Query)"| DenseRetrieval["<b>ChromaDB Dense Retrieval</b><br/>Embed query &phi;(Q) via <code>bge-small-en-v1.5</code><br/>Retrieve Top-4 nearest chunks {d<sub>i</sub>, s<sub>i</sub>}"]
+
+    DenseRetrieval --> CalcTopScore["<b>Compute Maximum Similarity</b><br/><i>s<sub>max</sub> = max(s<sub>1</sub>, s<sub>2</sub>, s<sub>3</sub>, s<sub>4</sub>)</i>"]
+
+    CalcTopScore --> DecisionGate{"<b>Similarity Score<br/>s<sub>max</sub> &ge; 0.75?</b><br/><i>(&tau; = 0.75 Decision Gate)</i>"}
+
+    %% True Branch (In-Domain Local Inference)
+    DecisionGate -->|"<b>True (s<sub>max</sub> &ge; 0.75)</b><br/>In-Domain Constitutional Corpus"| OllamaCheck{"<b>Local LLM Daemon</b><br/>Ollama (llama3:8b)<br/>Online at localhost:11434?"}
+    
+    OllamaCheck -->|"Yes (Ollama Ready)"| OllamaInference["<b>Local Ollama Inference</b><br/>Synthesize structured legal opinion<br/>grounded strictly in local context"]
+    OllamaCheck -->|"No (Ollama Offline / Crash)"| LocalSynthesisFallback["<b>Deterministic Local RAG Synthesis</b><br/>In-memory rule engine formats<br/>authoritative ratios & holdings"]
+
+    OllamaInference --> LocalPayload["<b>Formulate Local RAG Payload</b><br/>&bull; source = 'local_rag'<br/>&bull; confidence_score = s<sub>max</sub> (&ge; 0.75)<br/>&bull; citations = [Authoritative PDF Chunks]"]
+    LocalSynthesisFallback --> LocalPayload
+
+    %% False Branch (Out-of-Domain Cloud Grounding)
+    DecisionGate -->|"<b>False (s<sub>max</sub> < 0.75)</b><br/>Out-of-Domain / Modern Statutes"| GeminiCheck{"<b>Cloud API Service</b><br/>Google Gemini 2.5 Flash<br/>Configured with API Key?"}
+
+    GeminiCheck -->|"Yes (Configured)"| GeminiInference["<b>Gemini 2.5 Flash Generation</b><br/>Augmented with Google Search Grounding<br/>Fetches live modern statutes (BNS/BNSS/Acts)"]
+    GeminiCheck -->|"No / Quota Limit"| WebSearchFallback["<b>Secondary Web Grounding</b><br/>DuckDuckGo / Wikipedia API<br/>Dynamic statutory snippet synthesis"]
+
+    GeminiInference --> CloudPayload["<b>Formulate Cloud Fallback Payload</b><br/>&bull; source = 'gemini_fallback'<br/>&bull; confidence_score = min(0.72, s<sub>max</sub>) (< 0.75)<br/>&bull; citations = [] (Search Grounded)"]
+    WebSearchFallback --> CloudPayload
+
+    %% Merge to Return
+    SafetyResponse --> ReturnClient(["<b>Return JSON Response</b><br/><code>ChatResponse(text, source, confidence_score, citations)</code><br/>Render verified badges & citation accordion in React UI"])
+    LocalPayload --> ReturnClient
+    CloudPayload --> ReturnClient
+
+    %% Styling
+    classDef startStyle fill:#e2e8f0,stroke:#475569,stroke-width:2px,color:#0f172a;
+    classDef processStyle fill:#eff6ff,stroke:#3b82f6,stroke-width:2px,color:#1e3a8a;
+    classDef decisionStyle fill:#fef3c7,stroke:#d97706,stroke-width:3px,color:#78350f;
+    classDef localStyle fill:#dcfce7,stroke:#16a34a,stroke-width:2px,color:#14532d;
+    classDef cloudStyle fill:#e0f2fe,stroke:#0284c7,stroke-width:2px,color:#075985;
+    classDef endStyle fill:#f1f5f9,stroke:#334155,stroke-width:2px,color:#0f172a;
+
+    class Start,HistoryResolution,DenseRetrieval,CalcTopScore processStyle;
+    class DecisionGate,SafetyCheck,OllamaCheck,GeminiCheck decisionStyle;
+    class OllamaInference,LocalSynthesisFallback,LocalPayload,SafetyResponse localStyle;
+    class GeminiInference,WebSearchFallback,CloudPayload cloudStyle;
+    class ReturnClient endStyle;
