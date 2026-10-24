@@ -147,12 +147,23 @@ class VectorStoreManager:
         self.vector_store: Optional[Chroma] = None
 
     def initialize(self) -> None:
+        if self.vector_store is not None:
+            return
+
         logger.info(f"[ROUTER] Initializing HuggingFace Embeddings: {self.model_name}...")
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name=self.model_name,
-            model_kwargs={"device": "cpu"},
-            encode_kwargs={"normalize_embeddings": True},
-        )
+        try:
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name=self.model_name,
+                model_kwargs={"device": "cpu", "local_files_only": True},
+                encode_kwargs={"normalize_embeddings": True},
+            )
+        except Exception as e:
+            logger.info(f"[ROUTER] Offline embedding load note: {e}. Falling back to default loader...")
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name=self.model_name,
+                model_kwargs={"device": "cpu"},
+                encode_kwargs={"normalize_embeddings": True},
+            )
 
         logger.info(f"[ROUTER] Connecting to ChromaDB storage at {self.db_path}...")
         self.db_path.mkdir(parents=True, exist_ok=True)
@@ -308,6 +319,18 @@ class VectorStoreManager:
 
 
 vector_manager = VectorStoreManager(DB_DIR, COLLECTION_NAME, EMBEDDING_MODEL_NAME)
+
+
+@app.on_event("startup")
+async def startup_event() -> None:
+    """Pre-warm vector database and embeddings on server start to eliminate cold-start inference lag."""
+    logger.info("[ROUTER] Server booting: Pre-warming VectorStoreManager and in-memory embeddings...")
+    try:
+        vector_manager.initialize()
+        _ = vector_manager.retrieve_with_similarity("Constitution of India Article 21", top_k=1)
+        logger.info("[ROUTER] Pre-warming complete. Vector database ready for instant sub-second retrieval.")
+    except Exception as e:
+        logger.error(f"[ROUTER] Pre-warming failed: {e}")
 
 
 # ==============================================================================
