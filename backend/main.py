@@ -2506,6 +2506,7 @@ async def chat_router_endpoint(request: ChatRequest) -> ChatResponse:
 # ==============================================================================
 
 @app.get("/health")
+@app.get("/api/health")
 async def health_check() -> Dict[str, Any]:
     total_vectors = 0
     try:
