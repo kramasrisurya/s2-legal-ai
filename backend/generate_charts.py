@@ -145,17 +145,44 @@ def generate_fig4_latency(records: List[Dict[str, Any]], out_path: Path) -> None
 
 
 def generate_fig5_confidence(records: List[Dict[str, Any]], out_path: Path) -> None:
-    """Figure 5: Simple, clean scatter plot mapping confidence scores and 0.75 decision threshold."""
-    fig, ax = plt.subplots(figsize=(7.8, 4.4), dpi=300)
+    """Figure 5: Clean, uncrowded scatter plot mapping confidence scores and 0.75 decision threshold."""
+    fig, ax = plt.subplots(figsize=(8.2, 4.6), dpi=300)
 
     threshold = 0.75
 
-    # Simple horizontal threshold line
-    ax.axhline(y=threshold, color="#dc2626", linestyle="--", linewidth=1.8, label="Threshold (0.75)", zorder=2)
+    # Clean horizontal threshold line
+    ax.axhline(
+        y=threshold,
+        color="#dc2626",
+        linestyle="--",
+        linewidth=1.8,
+        label=r"Decision Threshold ($\tau = 0.75$)",
+        zorder=2,
+    )
 
-    # Clean, subtle operating zones
-    ax.axhspan(threshold, 1.05, color="#dcfce7", alpha=0.35, label="Local RAG Region (>= 0.75)")
-    ax.axhspan(0.58, threshold, color="#e0f2fe", alpha=0.35, label="Cloud Fallback Region (< 0.75)")
+    # Clean, subtle operating zones with direct text annotations
+    ax.axhspan(threshold, 1.05, color="#dcfce7", alpha=0.35, zorder=0)
+    ax.axhspan(0.58, threshold, color="#e0f2fe", alpha=0.35, zorder=0)
+
+    # Direct region labels placed in open areas
+    ax.text(
+        2.5, 0.82,
+        "Local RAG Region (In-Domain, s ≥ 0.75)",
+        fontsize=9,
+        fontweight="bold",
+        color="#15803d",
+        alpha=0.85,
+        zorder=1,
+    )
+    ax.text(
+        2.5, 0.64,
+        "Cloud Fallback Region (Out-of-Domain, s < 0.75)",
+        fontsize=9,
+        fontweight="bold",
+        color="#0369a1",
+        alpha=0.85,
+        zorder=1,
+    )
 
     local_x, local_y = [], []
     cloud_x, cloud_y = [], []
@@ -181,33 +208,42 @@ def generate_fig5_confidence(records: List[Dict[str, Any]], out_path: Path) -> N
     # Plot Local Points (Green)
     ax.scatter(
         local_x, local_y,
-        color="#16a34a", s=50, alpha=0.9, edgecolor="#14532d", linewidth=0.8,
+        color="#16a34a", s=45, alpha=0.9, edgecolor="#14532d", linewidth=0.8,
         label=f"Local RAG ({len(local_x)} queries)", zorder=3,
     )
 
     # Plot Cloud Points (Blue)
     ax.scatter(
         cloud_x, cloud_y,
-        color="#0284c7", s=50, alpha=0.9, edgecolor="#075985", linewidth=0.8,
+        color="#0284c7", s=45, alpha=0.9, edgecolor="#075985", linewidth=0.8,
         label=f"Cloud Fallback ({len(cloud_x)} queries)", zorder=3,
     )
 
-    # Highlight the 5 Edge Cases (Red Ring)
+    # Highlight the 5 Boundary Cases (Crisp Red Ring)
     ax.scatter(
         edge_x, edge_y,
-        facecolors="none", edgecolors="#dc2626", s=110, linewidth=1.8,
-        label=f"Boundary Edge Cases ({len(edge_x)} queries, 90% Accuracy)", zorder=4,
+        facecolors="none", edgecolors="#dc2626", s=95, linewidth=1.8,
+        label=f"Boundary Edge Cases ({len(edge_x)} queries, 90% Acc.)", zorder=4,
     )
 
     ax.set_title("Figure 5: Router Confidence Scores & Decision Boundary", fontsize=12, fontweight="bold", pad=12)
     ax.set_xlabel("Query Number (1 to 50)", fontsize=10.5, fontweight="bold")
     ax.set_ylabel("Confidence Score (Similarity)", fontsize=10.5, fontweight="bold")
-    ax.set_xlim(0, 51)
-    ax.set_ylim(0.60, 1.05)
+    ax.set_xlim(-1, 52)
+    ax.set_ylim(0.58, 1.05)
     ax.set_xticks(range(5, 51, 5))
 
     ax.grid(True, linestyle=":", alpha=0.5)
-    ax.legend(frameon=True, loc="lower right", fontsize=8.5, edgecolor="#d1d5db")
+    
+    # Legend in UPPER RIGHT - 100% free of data points
+    ax.legend(
+        frameon=True,
+        loc="upper right",
+        fontsize=9,
+        edgecolor="#d1d5db",
+        facecolor="#ffffff",
+        framealpha=0.95,
+    )
 
     plt.tight_layout()
     fig.savefig(out_path, dpi=300)
