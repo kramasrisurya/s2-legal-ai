@@ -1,53 +1,18 @@
-%% Figure 2: Multi-Document Ingestion & Dense Embedding Pipeline
-%% Publication: Router-Based Agentic Retrieval-Augmented Generation for Jurisprudential Reasoning
+%% Figure 2: Document Ingestion Pipeline
 flowchart LR
-    subgraph RawCorpus["Authoritative Legal Document Corpus (backend/data/)"]
-        Doc1["<b>The Constitution of India</b><br/><i>(Authoritative Edition)</i><br/>Articles 1-395, Schedules, Parts"]
-        Doc2["<b>Supreme Court Landmark Precedents</b><br/><i>(supreme_court_judgments.pdf)</i><br/>Kesavananda, Maneka Gandhi, Puttaswamy"]
-        Doc3["<b>Foundational Codes & Scenarios</b><br/><i>(IPC 1860, Civil & Criminal Matrices)</i><br/>511 Sections & Fact Patterns"]
-    end
+    PDFs["📄 Legal PDFs<br/>(Constitution & SC Judgments)"]
+    Loader["⚙️ PyPDFLoader<br/>(Extract Text)"]
+    Splitter["✂️ Text Splitter<br/>(1000 Chars / 200 Overlap)"]
+    Embedder["🧠 HuggingFace Model<br/>(bge-small-en-v1.5)"]
+    Chroma[("💾 ChromaDB<br/>Vector Store")]
 
-    subgraph ParsingPhase["Phase 1: Document Parsing & Metadata Extraction"]
-        Loader["<b>PyPDFLoader Engine</b><br/>(LangChain Community)<br/>Extracts raw text, page indices,<br/>and document titles"]
-        RawDocs["<b>Extracted Document Objects</b><br/>Document(page_content, metadata={source, page})"]
-    end
+    PDFs --> Loader
+    Loader --> Splitter
+    Splitter --> Embedder
+    Embedder -->|"384-d Vectors"| Chroma
 
-    subgraph ChunkingPhase["Phase 2: Hierarchical Semantic Chunking"]
-        Splitter["<b>RecursiveCharacterTextSplitter</b><br/>chunk_size = 1000 characters<br/>chunk_overlap = 200 characters<br/>Separators: ['\n\nARTICLE', '\n\nPART', '\n\n', '\n', ' ']"]
-        TextChunks["<b>Granular Legal Chunks</b><br/>Preserved statutory context,<br/>article headings & ratios"]
-    end
-
-    subgraph EmbeddingPhase["Phase 3: Dense Vector Embedding Generation"]
-        HFModel["<b>HuggingFace SentenceTransformer</b><br/>Model: <code>BAAI/bge-small-en-v1.5</code><br/>Dimension: 384-d dense vectors<br/>L2 Unit Normalization"]
-        DenseVectors["<b>Dense Embedding Vectors</b><br/>384-dimensional floating-point tensors<br/>&phi;(chunk) &isin; &reals;<sup>384</sup>"]
-    end
-
-    subgraph StoragePhase["Phase 4: Persistent Vector Database (ChromaDB)"]
-        ChromaClient["<b>ChromaDB Persistent Client</b><br/>Storage: <code>backend/db/chroma_data</code><br/>Collection: <code>indian_legal_corpus</code>"]
-        HNSWIndex["<b>HNSW Vector Index</b><br/>Cosine Distance Metric: <i>d(u,v) = 1 - (u&middot;v)/(||u|| ||v||)</i><br/>Fast Nearest-Neighbor Lookup"]
-    end
-
-    %% Pipeline Connections
-    Doc1 --> Loader
-    Doc2 --> Loader
-    Doc3 --> Loader
-    Loader --> RawDocs
-    RawDocs --> Splitter
-    Splitter --> TextChunks
-    TextChunks --> HFModel
-    HFModel --> DenseVectors
-    DenseVectors --> ChromaClient
-    ChromaClient --> HNSWIndex
-
-    %% Styling
-    classDef corpusStyle fill:#f0f4f8,stroke:#334e68,stroke-width:2px,color:#102a43;
-    classDef parseStyle fill:#e6fffa,stroke:#00a389,stroke-width:2px,color:#044e54;
-    classDef chunkStyle fill:#fffaf0,stroke:#dd6b20,stroke-width:2px,color:#7b341e;
-    classDef embedStyle fill:#f7fafc,stroke:#4a5568,stroke-width:2px,color:#1a202c;
-    classDef storeStyle fill:#ebf8ff,stroke:#2b6cb0,stroke-width:2px,color:#1a365d;
-
-    class Doc1,Doc2,Doc3 corpusStyle;
-    class Loader,RawDocs parseStyle;
-    class Splitter,TextChunks chunkStyle;
-    class HFModel,DenseVectors embedStyle;
-    class ChromaClient,HNSWIndex storeStyle;
+    classDef step fill:#f8fafc,stroke:#475569,stroke-width:2px;
+    classDef store fill:#dbeafe,stroke:#2563eb,stroke-width:2px;
+    
+    class PDFs,Loader,Splitter,Embedder step;
+    class Chroma store;

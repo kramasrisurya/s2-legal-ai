@@ -1,74 +1,30 @@
-%% Figure 1: S2 Legal AI Pro - End-to-End System Architecture
-%% Publication: Router-Based Agentic Retrieval-Augmented Generation for Jurisprudential Reasoning
-graph TB
-    subgraph ClientLayer["Frontend Client Layer (Presentation Tier)"]
-        UI["React 18 + Vite User Interface<br/>(Tailwind CSS, Lucide Icons)"]
-        InputBox["User Query Input & Role Selector<br/>(Advocate, Judge, Citizen, Law Student)"]
-        ChatBubble["Trust Verification Chat Bubble<br/>(Source Badges, Citation Accordion)"]
-    end
+%% Figure 1: Simple End-to-End System Architecture
+graph LR
+    User(["👤 User / Client"]) --> UI["🖥️ React 18 UI<br/>(Tailwind CSS)"]
+    UI --> Router["⚡ FastAPI Router<br/>(backend/main.py)"]
+    
+    Router --> Chroma[("📚 ChromaDB<br/>Vector Store")]
+    Chroma --> Gate{"Similarity Score<br/>&ge; 0.75?"}
+    
+    %% In-Domain Local Path
+    Gate -->|"Yes (&ge; 0.75)<br/>In-Domain"| Local["🔒 Local RAG<br/>(Ollama / llama3)"]
+    Local -->|"Verified Answer<br/>+ Citations"| Response["📋 Final Response<br/>(source: local_rag)"]
+    
+    %% Out-of-Domain Cloud Path
+    Gate -->|"No (< 0.75)<br/>Out-of-Domain"| Cloud["🌐 Gemini Cloud<br/>(Search Grounding)"]
+    Cloud -->|"Live Statute<br/>Analysis"| Response2["📋 Final Response<br/>(source: gemini_fallback)"]
+    
+    Response --> UI
+    Response2 --> UI
 
-    subgraph APILayer["API Gateway & Agentic Router (FastAPI / ASGI)"]
-        Router["Agentic Decision Router<br/>(FastAPI /api/chat Endpoint)"]
-        HistoryManager["Conversation History & Session State"]
-        SafetyGate["Safety & High-Risk Intercept Guard"]
-    end
-
-    subgraph RetrievalLayer["Dense Retrieval & Vector Store Engine"]
-        Embedder["HuggingFace Embedding Model<br/>(BAAI/bge-small-en-v1.5 - 384 Dim)"]
-        ChromaStore[("Persistent ChromaDB Store<br/>Collection: indian_legal_corpus<br/>Cosine Similarity Metric")]
-    end
-
-    subgraph DecisionGate["Bifurcation Decision Gate (&tau; = 0.75)"]
-        ThresholdEvaluator{"Top-1 Cosine Similarity<br/>Score s &ge; 0.75?"}
-    end
-
-    subgraph LocalPipeline["Local Offline High-Assurance Pipeline"]
-        LocalContext["Top-4 Constitutional Chunks<br/>& Authoritative Precedents"]
-        LocalLLM["Local Inference Engine<br/>Ollama (llama3:8b) / Deterministic RAG"]
-        VerifiedCitations["Authoritative Citation Builder<br/>(Source PDF, Article, Page No.)"]
-    end
-
-    subgraph CloudPipeline["Cloud-Grounded Live Research Pipeline"]
-        GeminiAPI["Google Gemini 2.5 Flash API<br/>(gemini-2.5-flash)"]
-        SearchGrounding["Google Search Grounding Engine<br/>(Live Statutory & Regulatory Search)"]
-        WebFallback["Secondary Web Search Engine<br/>(DuckDuckGo / Wikipedia Fallback)"]
-    end
-
-    %% Data Flow Connections
-    InputBox -->|"1. POST /api/chat {query, role, history}"| Router
-    Router --> SafetyGate
-    SafetyGate --> HistoryManager
-    HistoryManager -->|"2. Query String"| Embedder
-    Embedder -->|"3. 384d Dense Vector"| ChromaStore
-    ChromaStore -->|"4. Top-4 Document Chunks + Similarity Scores"| ThresholdEvaluator
-
-    %% Local Branch (In-Domain)
-    ThresholdEvaluator -->|"Yes (s &ge; 0.75) - In-Domain"| LocalContext
-    LocalContext --> LocalLLM
-    LocalLLM --> VerifiedCitations
-    VerifiedCitations -->|"5a. Payload: {source: 'local_rag', citations: [...], conf &ge; 0.75}"| Router
-
-    %% Cloud Branch (Out-of-Domain)
-    ThresholdEvaluator -->|"No (s < 0.75) - Out-of-Domain"| GeminiAPI
-    GeminiAPI <-->|"Live Grounding Tool"| SearchGrounding
-    GeminiAPI -.->|"On Quota / Timeout"| WebFallback
-    GeminiAPI -->|"5b. Payload: {source: 'gemini_fallback', citations: [], conf < 0.75}"| Router
-
-    %% Response to UI
-    Router -->|"6. JSON Response Stream"| ChatBubble
-    ChatBubble --> UI
-
-    %% Styling
-    classDef clientStyle fill:#e8f4f8,stroke:#2b5c8f,stroke-width:2px,color:#1a252f;
-    classDef routerStyle fill:#ede7f6,stroke:#512da8,stroke-width:2px,color:#1a252f;
-    classDef retrievalStyle fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px,color:#1a252f;
-    classDef localStyle fill:#d4edda,stroke:#28a745,stroke-width:2px,color:#155724;
-    classDef cloudStyle fill:#d1ecf1,stroke:#17a2b8,stroke-width:2px,color:#0c5460;
-    classDef gateStyle fill:#fff3cd,stroke:#ffc107,stroke-width:2px,color:#856404;
-
-    class UI,InputBox,ChatBubble clientStyle;
-    class Router,HistoryManager,SafetyGate routerStyle;
-    class Embedder,ChromaStore retrievalStyle;
-    class ThresholdEvaluator gateStyle;
-    class LocalContext,LocalLLM,VerifiedCitations localStyle;
-    class GeminiAPI,SearchGrounding,WebFallback cloudStyle;
+    classDef client fill:#e0f2fe,stroke:#0284c7,stroke-width:2px;
+    classDef router fill:#ede9fe,stroke:#7c3aed,stroke-width:2px;
+    classDef gate fill:#fef3c7,stroke:#d97706,stroke-width:2px;
+    classDef local fill:#dcfce7,stroke:#16a34a,stroke-width:2px;
+    classDef cloud fill:#f0f9ff,stroke:#0ea5e9,stroke-width:2px;
+    
+    class User,UI client;
+    class Router,Chroma router;
+    class Gate gate;
+    class Local,Response local;
+    class Cloud,Response2 cloud;
