@@ -4,10 +4,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Copy of S2 Legal AI - Pro Edition</title>
+    <title>S2 Legal AI - Pro Edition</title>
     <meta name="description" content="A safety-first, multi-agent AI demonstrator with Smart Hearing Scheduling for Advocates and Clients.">
-    <meta property="og:title" content="Copy of S2 Legal AI - Pro Edition">
+    <meta property="og:title" content="S2 Legal AI - Pro Edition">
     <meta property="og:description" content="A safety-first, multi-agent AI demonstrator with Smart Hearing Scheduling for Advocates and Clients.">
+    <script>
+        // Automatic redirect if loaded from GitHub Pages repo root to live production Vercel app
+        if (window.location.hostname.endsWith('github.io')) {
+            window.location.replace('https://s2-legal-ai.vercel.app' + window.location.search + window.location.hash);
+        }
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <style>
