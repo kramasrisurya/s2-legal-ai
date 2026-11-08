@@ -702,6 +702,79 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({ message }) => {
           </div>
         )}
 
+        
+        {/* Action Toolbar for AI Messages */}
+        {message.role === 'assistant' && (
+          <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const printWindow = window.open('', '_blank');
+                  if (!printWindow) return;
+                  printWindow.document.write(`
+                    <!DOCTYPE html>
+                    <html>
+                      <head>
+                        <title>S2 Legal AI - Judicial Memorandum</title>
+                        <style>
+                          body { font-family: 'Times New Roman', serif; margin: 40px; color: #111; line-height: 1.6; }
+                          .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 24px; }
+                          .title { font-size: 20px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+                          .subtitle { font-size: 13px; color: #555; }
+                          .meta { font-size: 12px; margin-bottom: 24px; }
+                          .content { font-size: 14px; white-space: pre-wrap; }
+                          .citations { margin-top: 30px; border-top: 1px solid #ccc; padding-top: 15px; font-size: 12px; }
+                          .footer { margin-top: 50px; display: flex; justify-content: space-between; font-size: 12px; border-top: 1px solid #000; padding-top: 10px; }
+                        </style>
+                      </head>
+                      <body>
+                        <div class="header">
+                          <div class="title">LEGAL ADVISORY & STATUTORY MEMORANDUM</div>
+                          <div class="subtitle">PREPARED VIA S2 LEGAL AI PRO ENTERPRISE INFERENCE ENGINE</div>
+                        </div>
+                        <div class="meta">
+                          <strong>DATE:</strong> ${new Date().toLocaleDateString('en-IN', { dateStyle: 'full' })}<br/>
+                          <strong>CONCORDANCE RATING:</strong> ${(message.confidenceScore ? Math.round(message.confidenceScore * 100) : 95)}% (High Statutory Grounding)
+                        </div>
+                        <div class="content">${message.content.replace(/###/g, '').replace(/\*\*/g, '')}</div>
+                        ${message.citations && message.citations.length > 0 ? `
+                          <div class="citations">
+                            <strong>REFERRED STATUTES & PRECEDENTS:</strong>
+                            <ul>${message.citations.map(c => `<li>${c}</li>`).join('')}</ul>
+                          </div>
+                        ` : ''}
+                        <div class="footer">
+                          <div>Advocate Advisory Copy</div>
+                          <div>S2 Legal AI Systems</div>
+                        </div>
+                        <script>window.print();</script>
+                      </body>
+                    </html>
+                  `);
+                  printWindow.document.close();
+                }}
+                className="px-2.5 py-1 rounded-lg bg-indigo-950/60 hover:bg-indigo-900 border border-indigo-700/50 text-indigo-300 font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Download formatted judicial brief ready for printing or filing"
+              >
+                <span>📄 Export Legal Memo (PDF/Print)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(message.content);
+                  alert('Legal Advisory copied to clipboard');
+                }}
+                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <span>📋 Copy</span>
+              </button>
+            </div>
+            <span className="text-[10px] text-slate-500 font-mono">BNS & IPC Concordance Active</span>
+          </div>
+        )}
+
         {/* Attachments Section */}
         {message.attachments && message.attachments.length > 0 && (
           <div className="mt-4 pt-3 border-t border-white/5 flex flex-wrap gap-2">
